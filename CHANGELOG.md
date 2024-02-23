@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
 
+- Suite package to handle setup and running of an App test suite
+- State package to share data between test cases
+- Config package to provide standard app configuration
+- Client package to abstract some test functionality
 
 [Unreleased]: https://github.com/giantswarm/apptest-framework/tree/main
