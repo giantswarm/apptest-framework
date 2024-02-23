@@ -1,27 +1,27 @@
-# General Go template repository
+# apptest-framework
 
-This is a general template repository containing some basic files every GitHub repo owned by Giant Swarm should have.
+<a href="https://godoc.org/github.com/giantswarm/apptest-framework"><img src="https://godoc.org/github.com/giantswarm/apptest-framework?status.svg"></a>
 
-Note also these more specific repositories:
+A test framework for helping with E2E testing of Giant Swarm managed Apps within Giant Swarm clusters.
 
-- [template-app](https://github.com/giantswarm/template-app)
-- [gitops-template](https://github.com/giantswarm/gitops-template)
-- [python-app-template](https://github.com/giantswarm/python-app-template)
+## Installation
 
-## Creating a new repository
+```shell
+go get github.com/giantswarm/apptest-framework
+```
 
-Please do not use the `Use this template` function in the GitHub web UI.
+## Features
 
-Check out the according [handbook article](https://handbook.giantswarm.io/docs/dev-and-releng/repository/go/) for better instructions.
+- Handles test suite setup (using Ginkgo)
+- Provides shared state across test cases
+- Provides hooks for pre-install, pre-upgrade and post-install steps
 
-### Some suggestions for your README
+## Documentation
 
-After you have created your new repository, you may want to add some of these badges to the top of your README.
+Documentation can be found at: [pkg.go.dev/github.com/giantswarm/apptest-framework](https://pkg.go.dev/github.com/giantswarm/apptest-framework).
 
-- **CircleCI:** After enabling builds for this repo via [this link](https://circleci.com/setup-project/gh/giantswarm/apptest-framework), you can find badge code on [this page](https://app.circleci.com/settings/project/github/giantswarm/apptest-framework/status-badges).
+## Resources
 
-- **Go reference:** use [this helper](https://pkg.go.dev/badge/) to create the markdown code.
-
-- **Go report card:** enter the module name on the [front page](https://goreportcard.com/) and hit "Generate report". Then use this markdown code for your badge: `[![Go report card](https://goreportcard.com/badge/github.com/giantswarm/apptest-framework)](https://goreportcard.com/report/github.com/giantswarm/apptest-framework)`
-
-- **Sourcegraph "used by N projects" badge**: for public Go repos only: `[![Sourcegraph](https://sourcegraph.com/github.com/giantswarm/apptest-framework/-/badge.svg)](https://sourcegraph.com/github.com/giantswarm/apptest-framework)`
+* [Ginkgo docs](https://onsi.github.io/ginkgo/)
+* [`clustertest` documentation](https://pkg.go.dev/github.com/giantswarm/clustertest)
+* [CI Tekton Pipeline](https://github.com/giantswarm/tekton-resources/blob/main/tekton-resources/pipelines/app-test-suites.yaml)
