@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.1] - 2024-02-27
+
 ### Added
 
 - Suite package to handle setup and running of an App test suite
@@ -16,4 +18,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Config package to provide standard app configuration
 - Client package to abstract some test functionality
 
-[Unreleased]: https://github.com/giantswarm/apptest-framework/tree/main
+[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v0.0.1...HEAD
+[0.0.1]: https://github.com/giantswarm/apptest-framework/releases/tag/v0.0.1
