@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Create the `/app` directory in the dockerfile and give all users permission to make changes to it
+
 ## [0.0.2] - 2024-02-29
 
 ### Added

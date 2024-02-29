@@ -4,6 +4,8 @@ RUN apt-get update \
   && apt-get install --no-install-recommends --no-install-suggests -y ca-certificates jq yq \
   && rm -rf /var/lib/apt/lists/*
 
+RUN mkdir /app && chmod 777 /app
+
 COPY <<EOF /entrypoint.sh
 #!/usr/bin/env bash
 set -e
