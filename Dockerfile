@@ -6,10 +6,12 @@ RUN apt-get update \
 
 RUN mkdir /app && chmod 777 /app
 
+ENV SOURCE_DIRECTORY=/app
+
 COPY <<EOF /entrypoint.sh
 #!/usr/bin/env bash
 set -e
-cd /app
+cd \${SOURCE_DIRECTORY}
 SUITES_TO_RUN=$(find \$1 -name '*_suite_test.go' | xargs)
 shift
 REPORT_DIR=\${REPORT_DIR:-/tmp/reports}
