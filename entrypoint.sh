@@ -10,7 +10,4 @@ shift
 REPORT_DIR=${REPORT_DIR:-/tmp/reports}
 mkdir -p ${REPORT_DIR}
 
-echo "Building test suites"
-ginkgo build ${SUITES_TO_RUN} &1>/dev/null
-
 ginkgo --output-dir=${REPORT_DIR} --junit-report=test-results.xml --timeout 4h --keep-going -v -r $@ ${SUITES_TO_RUN}
