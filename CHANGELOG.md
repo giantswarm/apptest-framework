@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Build the test suites first so the build output can be suppressed from the test logs
+
 ## [0.0.2] - 2024-02-29
 
 ### Added
