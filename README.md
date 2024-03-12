@@ -51,13 +51,27 @@ This contains a single test suite called `basic` that without any changes will i
 
 You can now add your test cases and additional test suites if needed.
 
-## Required Environment Variables
+## Running Tests Locally
 
-- `E2E_KUBECONFIG` must be set to the kubeconfig of the test management cluster
-- `E2E_KUBECONFIG_CONTEXT` must be set to the context to use in the kubeconfig
-- `E2E_WC_NAME` must be set to the name of the test workload cluster
-- `E2E_WC_NAMESPACE` must be set to namespace the test workload cluster is in within the management cluster
-- `E2E_APP_VERSION` must be set to version of the app to test against
+> [!NOTE]
+> Make sure you have [Ginkgo installed](https://onsi.github.io/ginkgo/#installing-ginkgo)
+
+Before you can run tests locally you must have already created a CAPI workload cluster and then set the following required environment variables:
+
+- `E2E_KUBECONFIG` must be set to the path to the kubeconfig of the test management cluster (e.g. `./kube/e2e.yaml`)
+- `E2E_KUBECONFIG_CONTEXT` must be set to the context to use for the management cluster in the kubeconfig (e.g. `capa`)
+- `E2E_WC_NAME` must be set to the name of the test workload cluster (e.g. `t-e5u0tg00n2g36xt8xa`)
+- `E2E_WC_NAMESPACE` must be set to namespace the test workload cluster is in within the management cluster (e.g. `org-t-pjii9jvrbzlasxpow6`)
+- `E2E_APP_VERSION` must be set to version of the app to test against (e.g. `3.5.1`). Note, this version must have already been published to the catalog.
+
+Once those are set, you can trigger the E2E tests in you App repo with the following:
+
+```sh
+cd ./tests/e2e
+ginkgo --timeout 4h -v -r ./suites/basic/
+```
+
+This will run the `basic` test suite. If you have others you wish to run, replace the directory with the test suite you want to trigger.
 
 ## API Documentation
 
