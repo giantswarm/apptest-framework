@@ -9,9 +9,10 @@ import (
 
 // TestConfig provides a standard configuration for Apps
 type TestConfig struct {
-	AppName    string `json:"appName"`
-	RepoName   string `json:"repoName"`
-	AppCatalog string `json:"appCatalog"`
+	AppName    string   `json:"appName"`
+	RepoName   string   `json:"repoName"`
+	AppCatalog string   `json:"appCatalog"`
+	Providers  []string `json:"providers"`
 }
 
 // MustLoad opens the given yaml file and parses it into a TestConfig instance
