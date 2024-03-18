@@ -51,6 +51,27 @@ This contains a single test suite called `basic` that without any changes will i
 
 You can now add your test cases and additional test suites if needed.
 
+## Config.yaml
+
+This framework relies on a `./tests/e2e/config.yaml` file to be present in the repo. This config contains the following properties that can be set based on what is needed by the App.
+
+| property | type | description |
+| --- | --- | --- |
+| `appName` | string | The name of the App as it appears in the catalog |
+| `repoName` | string | The name of the repository |
+| `appCatalog` | string | The (non-test) catalog that the App is published into |
+| `providers` | string array | A list of CAPI providers to test against when triggering from a PR (default if unset `capa`) |
+
+Example:
+```yaml
+appName: ingress-nginx
+repoName: ingress-nginx-app
+appCatalog: giantswarm
+providers:
+- capa
+- capv
+```
+
 ## Running Tests Locally
 
 > [!NOTE]
