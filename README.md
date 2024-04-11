@@ -72,6 +72,22 @@ providers:
 - capv
 ```
 
+## Running Tests Against a PR
+
+Providing the repo has been setup to make use of `apptest-framework` following the above instructions you can then trigger the configured tests on any open PR by adding the following as a comment:
+
+```
+/run app-test-suites
+```
+
+This will run all test suites in the App repo against all providers configured in the config.yaml.
+
+If you want to trigger the test suites against only a single provider (rather than everything configured in your config.yaml) then you can use the following (with the appropriate provider specified):
+
+```
+/run app-test-suites-single PROVIDER=capa
+```
+
 ## Running Tests Locally
 
 > [!NOTE]
