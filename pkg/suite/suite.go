@@ -108,6 +108,8 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 	RegisterFailHandler(Fail)
 
 	BeforeSuite(func() {
+		logger.LogWriter = GinkgoWriter
+
 		mcKubeconfig := os.Getenv("E2E_KUBECONFIG")
 		mcContext := os.Getenv("E2E_KUBECONFIG_CONTEXT")
 		wcName := os.Getenv("E2E_WC_NAME")
