@@ -8,7 +8,7 @@ require (
 	github.com/giantswarm/apiextensions-application v0.6.0
 	github.com/giantswarm/clustertest v0.18.0
 	github.com/onsi/ginkgo/v2 v2.17.1
-	github.com/onsi/gomega v1.32.0
+	github.com/onsi/gomega v1.33.0
 	k8s.io/apimachinery v0.26.3
 	sigs.k8s.io/controller-runtime v0.14.5
 	sigs.k8s.io/yaml v1.4.0
@@ -137,7 +137,7 @@ require (
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/crypto v0.21.0 // indirect
-	golang.org/x/net v0.22.0 // indirect
+	golang.org/x/net v0.23.0 // indirect
 	golang.org/x/oauth2 v0.19.0 // indirect
 	golang.org/x/sync v0.6.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
