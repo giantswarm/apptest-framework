@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Workload Cluster creation and deletion is now handled in code using `cluster-standup-teardown`
 
+### Changed
+
+- Change `BeforeInstall` hook to be `AfterClusterReady` as wouldn't make sense for default apps that are installed as part of the cluster creation
+
 ## [0.0.7] - 2024-04-11
 
 ### Changed

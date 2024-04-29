@@ -40,9 +40,9 @@ type suite struct {
 	isUpgrade        bool
 	installNamespace string
 
-	beforeInstall func()
-	beforeUpgrade func()
-	tests         func()
+	afterClusterReady func()
+	beforeUpgrade     func()
+	tests             func()
 }
 
 // New create a new suite instance that allows configuring an App test suite
@@ -81,11 +81,11 @@ func (s *suite) WithValuesFile(valuesFile string) *suite {
 	return s
 }
 
-// BeforeInstall allows configuring tests that will run before the App is installed.
+// AfterClusterReady allows configuring tests that will run as soon as the cluster is up and ready.
 // This allows for running tests to check the current state of the cluster and
 // assert that any pre-requisites are met.
-func (s *suite) BeforeInstall(fn func()) *suite {
-	s.beforeInstall = fn
+func (s *suite) AfterClusterReady(fn func()) *suite {
+	s.afterClusterReady = fn
 	return s
 }
 
@@ -229,6 +229,10 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 	})
 
 	Describe("", func() {
+		if s.afterClusterReady != nil {
+			Describe("After Cluster Ready", s.afterClusterReady)
+		}
+
 		// TODO: Exclude this if default app
 		It("Ensure app isn't already installed", func() {
 			appCR := state.GetApplication()
@@ -245,10 +249,6 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 			Expect(err).ToNot(BeNil())
 			Expect(errors.IsNotFound(err)).To(BeTrue())
 		})
-
-		if s.beforeInstall != nil {
-			Describe("Before install", s.beforeInstall)
-		}
 
 		if s.isUpgrade {
 			Describe("Install previous version of app", func() {
