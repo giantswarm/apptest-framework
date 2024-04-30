@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2024-04-30
+
 ### Added
 
 - Workload Cluster creation and deletion is now handled in code using `cluster-standup-teardown`
@@ -56,7 +58,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Config package to provide standard app configuration
 - Client package to abstract some test functionality
 
-[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v0.0.7...HEAD
+[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/giantswarm/apptest-framework/compare/v0.0.7...v1.0.0
 [0.0.7]: https://github.com/giantswarm/apptest-framework/compare/v0.0.6...v0.0.7
 [0.0.6]: https://github.com/giantswarm/apptest-framework/compare/v0.0.5...v0.0.6
 [0.0.5]: https://github.com/giantswarm/apptest-framework/compare/v0.0.4...v0.0.5
