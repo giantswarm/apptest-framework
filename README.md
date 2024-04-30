@@ -7,6 +7,7 @@ A test framework for helping with E2E testing of Giant Swarm managed Apps within
 ## Features
 
 - Handles test suite setup (using Ginkgo)
+- Handles workload cluster creation and deletion
 - Provides shared state across test cases
 - Provides hooks for pre-install, pre-upgrade and post-install steps
 
@@ -93,13 +94,16 @@ If you want to trigger the test suites against only a single provider (rather th
 > [!NOTE]
 > Make sure you have [Ginkgo installed](https://onsi.github.io/ginkgo/#installing-ginkgo)
 
-Before you can run tests locally you must have already created a CAPI workload cluster and then set the following required environment variables:
+Before you can run tests locally you must set the following required environment variables:
 
-- `E2E_KUBECONFIG` must be set to the path to the kubeconfig of the test management cluster (e.g. `./kube/e2e.yaml`)
+- `E2E_KUBECONFIG` must be set to the path to the kubeconfig of the test management cluster (e.g. `./kube/e2e.yaml`) - for the requirements of this kubeconfig please see [cluster-standup-teardown](https://github.com/giantswarm/cluster-standup-teardown) for more details.
 - `E2E_KUBECONFIG_CONTEXT` must be set to the context to use for the management cluster in the kubeconfig (e.g. `capa`)
-- `E2E_WC_NAME` must be set to the name of the test workload cluster (e.g. `t-e5u0tg00n2g36xt8xa`)
-- `E2E_WC_NAMESPACE` must be set to namespace the test workload cluster is in within the management cluster (e.g. `org-t-pjii9jvrbzlasxpow6`)
 - `E2E_APP_VERSION` must be set to version of the app to test against (e.g. `3.5.1`). Note, this version must have already been published to the catalog.
+
+Optionally, the following can be set to re-use an existing workload cluster:
+
+- `E2E_WC_NAME` - the name of the workload cluster on the MC
+- `E2E_WC_NAMESPACE` - the namespace the workload cluser is found in
 
 Once those are set, you can trigger the E2E tests in you App repo with the following:
 
@@ -109,6 +113,14 @@ ginkgo --timeout 4h -v -r ./suites/basic/
 ```
 
 This will run the `basic` test suite. If you have others you wish to run, replace the directory with the test suite you want to trigger.
+
+### Running local `apptest-framework` changes
+
+If you need to run with a local copy of `apptest-framework` (such as when testing out changes to the framework) you can do so by adding the following to your Apps test go.mod (with the path correctly set to point to your checked out code):
+
+```
+replace github.com/giantswarm/apptest-framework => /path/to/my/apptest-framework
+```
 
 ## API Documentation
 
@@ -138,4 +150,5 @@ To add a new test suite, create a new directory under `./tests/e2e/suites/` with
 
 - [Ginkgo docs](https://onsi.github.io/ginkgo/)
 - [`clustertest` documentation](https://pkg.go.dev/github.com/giantswarm/clustertest)
+- [`cluster-standup-teardown`](https://github.com/giantswarm/cluster-standup-teardown)
 - [CI Tekton Pipeline](https://github.com/giantswarm/tekton-resources/blob/main/tekton-resources/pipelines/app-test-suites.yaml)

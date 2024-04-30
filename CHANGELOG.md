@@ -5,9 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-
-
 ## [Unreleased]
+
+### Added
+
+- Workload Cluster creation and deletion is now handled in code using `cluster-standup-teardown`
+
+### Changed
+
+- Change `BeforeInstall` hook to be `AfterClusterReady` as wouldn't make sense for default apps that are installed as part of the cluster creation
 
 ## [0.0.7] - 2024-04-11
 
