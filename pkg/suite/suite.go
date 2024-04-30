@@ -137,8 +137,8 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(cb).NotTo(BeNil())
 
-		// Use ClusterBuilder to create a new cluster with all default values
-		cluster := cb.NewClusterApp("", "", []string{}, []string{})
+		// Load an existing cluster is env vars are set, otherwise create a new cluster
+		cluster := clusterbuilder.LoadOrBuildCluster(state.GetFramework(), cb)
 		Expect(cluster).NotTo(BeNil())
 		state.SetCluster(cluster)
 
