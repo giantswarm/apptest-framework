@@ -100,6 +100,11 @@ Before you can run tests locally you must set the following required environment
 - `E2E_KUBECONFIG_CONTEXT` must be set to the context to use for the management cluster in the kubeconfig (e.g. `capa`)
 - `E2E_APP_VERSION` must be set to version of the app to test against (e.g. `3.5.1`). Note, this version must have already been published to the catalog.
 
+Optionally, the following can be set to re-use an existing workload cluster:
+
+- `E2E_WC_NAME` - the name of the workload cluster on the MC
+- `E2E_WC_NAMESPACE` - the namespace the workload cluser is found in
+
 Once those are set, you can trigger the E2E tests in you App repo with the following:
 
 ```sh
