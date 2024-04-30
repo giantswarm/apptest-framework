@@ -8,7 +8,7 @@ require (
 	github.com/giantswarm/apiextensions-application v0.6.0
 	github.com/giantswarm/clustertest v0.18.0
 	github.com/onsi/ginkgo/v2 v2.17.2
-	github.com/onsi/gomega v1.33.0
+	github.com/onsi/gomega v1.33.1
 	k8s.io/apimachinery v0.26.3
 	sigs.k8s.io/controller-runtime v0.14.5
 	sigs.k8s.io/yaml v1.4.0
