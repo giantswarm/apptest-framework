@@ -156,7 +156,7 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 				if replicas != 0 {
 					logger.Log("Waiting for %q control plane nodes to be ready", replicas)
 					_ = wait.For(
-						wait.AreNumNodesReady(context.Background(), wcClient, 3, &cr.MatchingLabels{"node-role.kubernetes.io/control-plane": ""}),
+						wait.AreNumNodesReady(context.Background(), wcClient, int(replicas), &cr.MatchingLabels{"node-role.kubernetes.io/control-plane": ""}),
 						wait.WithTimeout(20*time.Minute),
 						wait.WithInterval(15*time.Second),
 					)
