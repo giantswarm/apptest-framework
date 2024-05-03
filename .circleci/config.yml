@@ -6,9 +6,18 @@ orbs:
 workflows:
   test:
     jobs:
+      - architect/go-test:
+          context: architect
+          name: go-test
+          filters:
+            # Trigger job also on git tag.
+            tags:
+              only: /^v.*/
       - architect/push-to-registries:
           context: architect
           name: push-to-registries
+          requires:
+            - go-test
           filters:
             tags:
               only: /^v.*/

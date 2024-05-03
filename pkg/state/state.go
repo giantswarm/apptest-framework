@@ -11,10 +11,11 @@ import (
 var lock = &sync.Mutex{}
 
 type state struct {
-	framework   *clustertest.Framework
-	cluster     *application.Cluster
-	application *application.Application
-	ctx         context.Context
+	framework         *clustertest.Framework
+	cluster           *application.Cluster
+	application       *application.Application
+	bundleApplication *application.Application
+	ctx               context.Context
 }
 
 var singleInstance *state
@@ -65,4 +66,13 @@ func SetApplication(app *application.Application) {
 
 func GetApplication() *application.Application {
 	return get().application
+}
+
+func SetBundleApplication(app *application.Application) {
+	s := get()
+	s.bundleApplication = app
+}
+
+func GetBundleApplication() *application.Application {
+	return get().bundleApplication
 }

@@ -4,10 +4,11 @@ import (
 	"context"
 	"time"
 
-	"github.com/giantswarm/apptest-framework/pkg/state"
 	"github.com/giantswarm/clustertest/pkg/application"
 	"github.com/giantswarm/clustertest/pkg/logger"
 	"github.com/giantswarm/clustertest/pkg/wait"
+
+	"github.com/giantswarm/apptest-framework/pkg/state"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -18,12 +19,16 @@ import (
 func InstallApp(ctx context.Context, app *application.Application) {
 	GinkgoHelper()
 
-	logger.Log("Installing App %s (version: %s)", app.AppName, app.Version)
+	builtApp, _, err := app.Build()
+	Expect(err).NotTo(HaveOccurred())
+	version := builtApp.Spec.Version
 
-	err := state.GetFramework().MC().DeployApp(state.GetContext(), *app)
+	logger.Log("Installing App %s (version: %s)", app.AppName, version)
+
+	err = state.GetFramework().MC().DeployApp(state.GetContext(), *app)
 	Expect(err).NotTo(HaveOccurred())
 
-	Eventually(wait.IsAppVersion(state.GetContext(), state.GetFramework().MC(), app.InstallName, app.GetNamespace(), app.Version)).
+	Eventually(wait.IsAppVersion(state.GetContext(), state.GetFramework().MC(), app.InstallName, app.GetNamespace(), version)).
 		WithContext(ctx).
 		WithPolling(5 * time.Second).
 		Should(BeTrue())

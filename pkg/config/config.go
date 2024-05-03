@@ -21,6 +21,6 @@ func MustLoad(configPath string) TestConfig {
 	configPath, _ = filepath.Abs(configPath)
 	config := TestConfig{}
 	yamlFile, _ := os.ReadFile(configPath)
-	yaml.Unmarshal(yamlFile, &config)
+	_ = yaml.Unmarshal(yamlFile, &config)
 	return config
 }

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added support for running tests against an App running as a child app of a Bundle App by using the new `InAppBundle` function.
+
 ### Fixed
 
 - Check for defined number of control plane replicas instead of hardcoded to 3.
