@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Added pipefail to entrypoint.sh
+- Added log output to entrypoint.sh to indicate current progress
+
 ## [1.1.0] - 2024-05-09
 
 ### Added
