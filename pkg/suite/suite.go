@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -13,9 +14,6 @@ import (
 
 	"github.com/giantswarm/apiextensions-application/api/v1alpha1"
 	applicationv1alpha1 "github.com/giantswarm/apiextensions-application/api/v1alpha1"
-	"github.com/giantswarm/apptest-framework/pkg/client"
-	"github.com/giantswarm/apptest-framework/pkg/config"
-	"github.com/giantswarm/apptest-framework/pkg/state"
 	"github.com/giantswarm/cluster-standup-teardown/pkg/clusterbuilder"
 	"github.com/giantswarm/cluster-standup-teardown/pkg/standup"
 	"github.com/giantswarm/cluster-standup-teardown/pkg/teardown"
@@ -28,6 +26,11 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	cr "sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/giantswarm/apptest-framework/pkg/bundles"
+	"github.com/giantswarm/apptest-framework/pkg/client"
+	"github.com/giantswarm/apptest-framework/pkg/config"
+	"github.com/giantswarm/apptest-framework/pkg/state"
 )
 
 type suite struct {
@@ -39,6 +42,8 @@ type suite struct {
 	valuesFile       string
 	isUpgrade        bool
 	installNamespace string
+
+	inBundleApp string
 
 	afterClusterReady func()
 	beforeUpgrade     func()
@@ -54,6 +59,7 @@ func New(testConfig config.TestConfig) *suite {
 		isUpgrade:        false,
 		installNamespace: "default",
 		valuesFile:       "./values.yaml",
+		inBundleApp:      "",
 	}
 }
 
@@ -78,6 +84,13 @@ func (s *suite) WithInstallNamespace(namespace string) *suite {
 // If not set this default to `./values.yaml`
 func (s *suite) WithValuesFile(valuesFile string) *suite {
 	s.valuesFile, _ = filepath.Abs(valuesFile)
+	return s
+}
+
+// InBundleApp sets this test suite to install the App via the provided bundle App by setting the
+// appropriate chart values
+func (s *suite) InAppBundle(appBundleName string) *suite {
+	s.inBundleApp = strings.ToLower(appBundleName)
 	return s
 }
 
@@ -142,6 +155,34 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 		Expect(cluster).NotTo(BeNil())
 		state.SetCluster(cluster)
 
+		// Create app
+		app := application.New(fmt.Sprintf("%s-%s", cluster.Name, s.appName), s.appName).
+			WithRepoName(s.repoName).
+			WithCatalog(s.appCatalog).
+			WithOrganization(*cluster.Organization).
+			WithClusterName(cluster.Name).
+			WithVersion(appVersion).
+			WithInstallNamespace(s.installNamespace).
+			MustWithValuesFile(s.valuesFile, &application.TemplateValues{}).
+			WithInCluster(false)
+		state.SetApplication(app)
+
+		if s.inBundleApp != "" {
+			bundleApp := application.New(fmt.Sprintf("%s-%s", cluster.Name, s.inBundleApp), s.inBundleApp).
+				WithCatalog(s.appCatalog).
+				WithOrganization(*cluster.Organization).
+				WithClusterName(cluster.Name).
+				WithVersion("latest").
+				WithInstallNamespace(cluster.Organization.GetNamespace()).
+				MustWithValues(fmt.Sprintf("clusterID: %s", cluster.Name), &application.TemplateValues{}).
+				WithInCluster(true)
+
+			// Replace app with bundle app that has version of child App set
+			bundleApp, err = bundles.OverrideChildApp(bundleApp, app)
+			Expect(err).NotTo(HaveOccurred())
+			state.SetBundleApplication(bundleApp)
+		}
+
 		// Create new workload cluster
 		logger.Log("Creating new workload cluster")
 
@@ -154,7 +195,7 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 
 				// Only check for control plane if not a managed cluster (e.g. EKS)
 				if replicas != 0 {
-					logger.Log("Waiting for %q control plane nodes to be ready", replicas)
+					logger.Log("Waiting for %d control plane nodes to be ready", replicas)
 					_ = wait.For(
 						wait.AreNumNodesReady(context.Background(), wcClient, int(replicas), &cr.MatchingLabels{"node-role.kubernetes.io/control-plane": ""}),
 						wait.WithTimeout(20*time.Minute),
@@ -202,23 +243,10 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 		state.SetCluster(cluster)
 
 		logger.Log("Workload cluster ready to use")
-
-		// Create app
-		app := application.New(fmt.Sprintf("%s-%s", cluster.Name, s.appName), s.appName).
-			WithRepoName(s.repoName).
-			WithCatalog(s.appCatalog).
-			WithOrganization(*cluster.Organization).
-			WithClusterName(cluster.Name).
-			WithVersion(appVersion).
-			WithInstallNamespace(s.installNamespace).
-			MustWithValuesFile(s.valuesFile, &application.TemplateValues{}).
-			WithInCluster(false)
-
-		state.SetApplication(app)
 	})
 
 	AfterSuite(func() {
-		app := state.GetApplication()
+		app := getInstallApp()
 		logger.Log("Uninstalling App %s", app.AppName)
 		err := state.GetFramework().MC().DeleteApp(state.GetContext(), *app)
 		Expect(err).NotTo(HaveOccurred())
@@ -235,7 +263,7 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 
 		// TODO: Exclude this if default app
 		It("Ensure app isn't already installed", func() {
-			appCR := state.GetApplication()
+			appCR := getInstallApp()
 
 			logger.Log("Checking that App %s isn't already installed", appCR.AppName)
 
@@ -253,8 +281,20 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 		if s.isUpgrade {
 			Describe("Install previous version of app", func() {
 				It("Install the latest release of the application", func() {
-
-					app := state.GetApplication().WithVersion("latest")
+					var app *application.Application
+					if s.inBundleApp != "" {
+						cluster := state.GetCluster()
+						app = application.New(fmt.Sprintf("%s-%s", cluster.Name, s.inBundleApp), s.inBundleApp).
+							WithCatalog(s.appCatalog).
+							WithOrganization(*cluster.Organization).
+							WithClusterName(cluster.Name).
+							WithVersion("latest").
+							WithInstallNamespace(cluster.Organization.GetNamespace()).
+							MustWithValues(fmt.Sprintf("clusterID: %s", cluster.Name), &application.TemplateValues{}).
+							WithInCluster(true)
+					} else {
+						app = state.GetApplication().WithVersion("latest")
+					}
 
 					ctx, cancel := context.WithTimeout(state.GetContext(), 5*time.Minute)
 					defer cancel()
@@ -269,7 +309,7 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 
 		Describe("Install app", func() {
 			It("Install the application with the version to test", func() {
-				app := state.GetApplication()
+				app := getInstallApp()
 
 				ctx, cancel := context.WithTimeout(state.GetContext(), 5*time.Minute)
 				defer cancel()
@@ -283,4 +323,13 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 	})
 
 	RunSpecs(t, suiteName)
+}
+
+// getInstallApp returns the bundle App if it's set, otherwise it returns the App
+func getInstallApp() *application.Application {
+	bundleApp := state.GetBundleApplication()
+	if bundleApp != nil {
+		return bundleApp
+	}
+	return state.GetApplication()
 }
