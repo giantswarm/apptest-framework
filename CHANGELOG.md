@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2024-05-09
+
 ### Added
 
 - Added support for running tests against an App running as a child app of a Bundle App by using the new `InAppBundle` function.
@@ -66,7 +68,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Config package to provide standard app configuration
 - Client package to abstract some test functionality
 
-[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/giantswarm/apptest-framework/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/giantswarm/apptest-framework/compare/v0.0.7...v1.0.0
 [0.0.7]: https://github.com/giantswarm/apptest-framework/compare/v0.0.6...v0.0.7
 [0.0.6]: https://github.com/giantswarm/apptest-framework/compare/v0.0.5...v0.0.6
