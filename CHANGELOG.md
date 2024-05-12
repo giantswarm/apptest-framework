@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2024-05-12
+
 ### Changed
 
 - Added pipefail to entrypoint.sh
@@ -73,7 +75,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Config package to provide standard app configuration
 - Client package to abstract some test functionality
 
-[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/giantswarm/apptest-framework/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/giantswarm/apptest-framework/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/giantswarm/apptest-framework/compare/v0.0.7...v1.0.0
 [0.0.7]: https://github.com/giantswarm/apptest-framework/compare/v0.0.6...v0.0.7
