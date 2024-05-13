@@ -215,8 +215,8 @@ github.com/giantswarm/apiextensions-application v0.6.1 h1:X1uzWBSrF4QsyyzaV46QkP
 github.com/giantswarm/apiextensions-application v0.6.1/go.mod h1:O6mg+EdXC9CyTLgi0d3rf6QTXrQX/79iw4kjMJRinig=
 github.com/giantswarm/cluster-standup-teardown v1.1.0 h1:Lo08V5XHp//i3SpCDTWcZPrXe0ric5vPUd/cAP/UhJc=
 github.com/giantswarm/cluster-standup-teardown v1.1.0/go.mod h1:TV5r27vdPGRUAwH5KOijcOiIL/lWDSg3ayRHbhXVDUc=
-github.com/giantswarm/clustertest v0.20.0 h1:+czpYzp/7aioqNr+j8qjbD3n+HtFxZellZwBmBn03Hg=
-github.com/giantswarm/clustertest v0.20.0/go.mod h1:HgN6DXer3dX9NEP6xqp+ztT3n4kg1f3vqkmQIHyvBFg=
+github.com/giantswarm/clustertest v0.20.1 h1:0H/S1Hb+GYj027Awoq20S/Mq9axN9JQVui/OxsyttYs=
+github.com/giantswarm/clustertest v0.20.1/go.mod h1:HT7dW/kX1dzeHw+ina8vwv6P0X23u7A4p3IS+YcV6LU=
 github.com/giantswarm/k8smetadata v0.23.0 h1:iGwa1Nb45Sfcd5wqJEKBvxY1u5yXFg3Sq5Fw62nyRGA=
 github.com/giantswarm/k8smetadata v0.23.0/go.mod h1:QiQAyaZnwco1U0lENLF0Kp4bSN4dIPwIlHWEvUo3ES8=
 github.com/giantswarm/kubectl-gs/v2 v2.45.0 h1:4g1Fnpkf4gjxiZtFPCEIfEnEWVIpoTXj1yij4hxaOok=
@@ -334,8 +334,8 @@ github.com/google/go-cmp v0.5.7/go.mod h1:n+brtR0CgQNWTVd5ZUFpTBC8YFBDLK/h/bpaJ8
 github.com/google/go-cmp v0.5.9/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
 github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
 github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
-github.com/google/go-github/v61 v61.0.0 h1:VwQCBwhyE9JclCI+22/7mLB1PuU9eowCXKY5pNlu1go=
-github.com/google/go-github/v61 v61.0.0/go.mod h1:0WR+KmsWX75G2EbpyGsGmradjo3IiciuI4BmdVCobQY=
+github.com/google/go-github/v62 v62.0.0 h1:/6mGCaRywZz9MuHyw9gD1CwsbmBX8GWsbFkwMmHdhl4=
+github.com/google/go-github/v62 v62.0.0/go.mod h1:EMxeUqGJq2xRu9DYBMwel/mr7kZrzUOfQmmpYrZn2a4=
 github.com/google/go-querystring v1.1.0 h1:AnCroh3fv4ZBgVIf1Iwtovgjaw/GiKJo8M8yD/fhyJ8=
 github.com/google/go-querystring v1.1.0/go.mod h1:Kcdr2DB4koayq7X8pmAG4sNG59So17icRSOU623lUBU=
 github.com/google/gofuzz v1.0.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
