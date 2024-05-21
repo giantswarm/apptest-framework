@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.3] - 2024-05-21
+
 ### Fixed
 
 - Ensure WC is always deleted during AfterSuite even if App uninstall fails
@@ -86,7 +88,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Config package to provide standard app configuration
 - Client package to abstract some test functionality
 
-[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v1.1.2...HEAD
+[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v1.1.3...HEAD
+[1.1.3]: https://github.com/giantswarm/apptest-framework/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/giantswarm/apptest-framework/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/giantswarm/apptest-framework/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/giantswarm/apptest-framework/compare/v1.0.0...v1.1.0
