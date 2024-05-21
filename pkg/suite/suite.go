@@ -212,17 +212,32 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 				)
 			},
 			func(wcClient *clusterclient.Client) {
-				logger.Log("Waiting for all default apps to be ready")
-				defaultAppsAppName := fmt.Sprintf("%s-%s", state.GetCluster().Name, "default-apps")
+				skipDefaultAppsApp, err := state.GetCluster().UsesUnifiedClusterApp()
+				Expect(err).NotTo(HaveOccurred())
 
-				Eventually(wait.IsAppDeployed(state.GetContext(), state.GetFramework().MC(), defaultAppsAppName, state.GetCluster().Organization.GetNamespace())).
-					WithTimeout(30 * time.Second).
-					WithPolling(50 * time.Millisecond).
-					Should(BeTrue())
+				logger.Log("Waiting for all default apps to be ready")
+
+				defaultAppsSelectorLabels := cr.MatchingLabels{
+					"giantswarm.io/cluster":        state.GetCluster().Name,
+					"app.kubernetes.io/managed-by": "Helm",
+				}
+
+				if !skipDefaultAppsApp {
+					defaultAppsAppName := fmt.Sprintf("%s-%s", state.GetCluster().Name, "default-apps")
+
+					Eventually(wait.IsAppDeployed(state.GetContext(), state.GetFramework().MC(), defaultAppsAppName, state.GetCluster().Organization.GetNamespace())).
+						WithTimeout(30 * time.Second).
+						WithPolling(50 * time.Millisecond).
+						Should(BeTrue())
+
+					defaultAppsSelectorLabels = cr.MatchingLabels{
+						"giantswarm.io/managed-by": defaultAppsAppName,
+					}
+				}
 
 				// Wait for all default-apps apps to be deployed
 				appList := &v1alpha1.AppList{}
-				err := state.GetFramework().MC().List(state.GetContext(), appList, cr.InNamespace(state.GetCluster().Organization.GetNamespace()), cr.MatchingLabels{"giantswarm.io/managed-by": defaultAppsAppName})
+				err = state.GetFramework().MC().List(state.GetContext(), appList, cr.InNamespace(state.GetCluster().Organization.GetNamespace()), defaultAppsSelectorLabels)
 				Expect(err).NotTo(HaveOccurred())
 
 				appNamespacedNames := []types.NamespacedName{}
