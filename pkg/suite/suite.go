@@ -261,13 +261,16 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 	})
 
 	AfterSuite(func() {
+		defer func() {
+			// We defer this to ensure it happens even if uninstalling the app fails
+			logger.Log("Deleting workload cluster")
+			err := teardown.New(state.GetFramework()).Teardown(state.GetCluster())
+			Expect(err).NotTo(HaveOccurred())
+		}()
+
 		app := getInstallApp()
 		logger.Log("Uninstalling App %s", app.AppName)
 		err := state.GetFramework().MC().DeleteApp(state.GetContext(), *app)
-		Expect(err).NotTo(HaveOccurred())
-
-		logger.Log("Deleting workload cluster")
-		err = teardown.New(state.GetFramework()).Teardown(state.GetCluster())
 		Expect(err).NotTo(HaveOccurred())
 	})
 
