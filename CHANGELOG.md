@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Handle providers with consolidated default-apps
+
 ## [1.1.2] - 2024-05-20
 
 ### Changed
