@@ -6,7 +6,7 @@ go 1.21
 replace github.com/giantswarm/apptest-framework => ../../
 
 require (
-	github.com/giantswarm/apptest-framework v1.1.2
+	github.com/giantswarm/apptest-framework v1.1.4
 	github.com/giantswarm/clustertest v0.22.0
 	github.com/onsi/ginkgo/v2 v2.19.0
 	github.com/onsi/gomega v1.33.1
