@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.4] - 2024-05-27
+
 ### Fixed
 
 - Allow overriding the working directory in entrypoint.sh
@@ -92,7 +94,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Config package to provide standard app configuration
 - Client package to abstract some test functionality
 
-[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v1.1.3...HEAD
+[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v1.1.4...HEAD
+[1.1.4]: https://github.com/giantswarm/apptest-framework/compare/v1.1.3...v1.1.4
 [1.1.3]: https://github.com/giantswarm/apptest-framework/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/giantswarm/apptest-framework/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/giantswarm/apptest-framework/compare/v1.1.0...v1.1.1
