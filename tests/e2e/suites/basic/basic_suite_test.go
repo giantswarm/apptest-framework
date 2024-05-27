@@ -10,8 +10,8 @@ import (
 	"github.com/giantswarm/apptest-framework/pkg/config"
 	"github.com/giantswarm/apptest-framework/pkg/state"
 	"github.com/giantswarm/apptest-framework/pkg/suite"
-	"github.com/giantswarm/clustertest/pkg/logger"
 
+	"github.com/giantswarm/clustertest/pkg/logger"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/types"
 )

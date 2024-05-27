@@ -8,8 +8,10 @@ replace github.com/giantswarm/apptest-framework => ../../
 require (
 	github.com/giantswarm/apptest-framework v1.1.2
 	github.com/giantswarm/clustertest v0.22.0
-	github.com/onsi/ginkgo/v2 v2.18.0
+	github.com/onsi/ginkgo/v2 v2.19.0
 	github.com/onsi/gomega v1.33.1
+	k8s.io/api v0.26.3
+	k8s.io/apimachinery v0.26.3
 )
 
 require (
@@ -154,9 +156,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	helm.sh/helm/v3 v3.11.3 // indirect
-	k8s.io/api v0.26.3 // indirect
 	k8s.io/apiextensions-apiserver v0.26.3 // indirect
-	k8s.io/apimachinery v0.26.3 // indirect
 	k8s.io/apiserver v0.26.3 // indirect
 	k8s.io/cli-runtime v0.26.3 // indirect
 	k8s.io/client-go v0.26.3 // indirect
