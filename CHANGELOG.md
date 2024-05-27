@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added example E2E test suite that uses the hello-world app to self-test the framework
+
 ## [1.1.3] - 2024-05-21
 
 ### Fixed
