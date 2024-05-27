@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Allow overriding the working directory in entrypoint.sh
+
 ## [1.1.3] - 2024-05-21
 
 ### Fixed
