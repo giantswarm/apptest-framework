@@ -3,7 +3,7 @@
 set -e
 set -o pipefail
 
-cd /app
+cd ${E2E_DIR:-/app}
 
 SUITES_TO_RUN=$(find $1 -name '*_suite_test.go' | xargs dirname | uniq | xargs)
 shift
