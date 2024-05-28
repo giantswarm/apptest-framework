@@ -132,11 +132,12 @@ API documentation can be found at: [pkg.go.dev/github.com/giantswarm/apptest-fra
 
 Once bootstrapped your repo will have a test suite called `basic` that you can start adding tests to.
 
-There are 3 phases in which you can add tests:
+There are 4 phases in which you can add tests:
 
-- `BeforeInstall` - These are run first, before anything else is done, and should be used to check for any needed pre-requisites in the cluster.
+- `AfterClusterReady` - These are run first, as soon as the workload cluster is deemed to be ready, and should be used to check for any needed pre-requisites in the cluster.
 - `BeforeUpgrade` - These are only run if performing an upgrade tests and are run between installing the latest released version of your App and the version being tested. These are used to test that the App is in an expected state before performing the upgrade.
 - `Tests` - This is where most of your tests will go and will be run after your App has been installed and marked as "Deployed" in the cluster.
+- `AfterSuite` - This is performed during the cleanup after the tests have completed. This function will be triggered before the test App is uninstalled and before the workload cluster is deleted.
 
 To add new test cases you can either add them inline within the above functions or call out to other functions and modules without your codebase so you can better structure different tests together. Be sure to follow the Ginkgo docs on writing [Spec Subjects](https://onsi.github.io/ginkgo/#spec-subjects-it).
 

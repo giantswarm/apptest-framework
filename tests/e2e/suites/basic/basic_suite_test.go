@@ -72,5 +72,10 @@ func TestBasic(t *testing.T) {
 			})
 
 		}).
+		AfterSuite(func() {
+
+			logger.Log("Cleaning up after tests have completed")
+
+		}).
 		Run(t, "Basic Test")
 }

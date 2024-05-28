@@ -48,6 +48,7 @@ type suite struct {
 	afterClusterReady func()
 	beforeUpgrade     func()
 	tests             func()
+	afterSuite        func()
 }
 
 // New create a new suite instance that allows configuring an App test suite
@@ -99,6 +100,14 @@ func (s *suite) InAppBundle(appBundleName string) *suite {
 // assert that any pre-requisites are met.
 func (s *suite) AfterClusterReady(fn func()) *suite {
 	s.afterClusterReady = fn
+	return s
+}
+
+// AfterSuite allows configuring tests that will run during the cleanup / teardown stage after
+// all tests have completed. This is performed before the App is uninstalled and before the
+// workload cluster is deleted.
+func (s *suite) AfterSuite(fn func()) *suite {
+	s.afterSuite = fn
 	return s
 }
 
@@ -262,16 +271,24 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 
 	AfterSuite(func() {
 		defer func() {
-			// We defer this to ensure it happens even if uninstalling the app fails
-			logger.Log("Deleting workload cluster")
-			err := teardown.New(state.GetFramework()).Teardown(state.GetCluster())
-			Expect(err).NotTo(HaveOccurred())
+			By("Deleting workload cluster", func() {
+				// We defer this to ensure it happens even if uninstalling the app fails
+				logger.Log("Deleting workload cluster")
+				err := teardown.New(state.GetFramework()).Teardown(state.GetCluster())
+				Expect(err).NotTo(HaveOccurred())
+			})
 		}()
 
-		app := getInstallApp()
-		logger.Log("Uninstalling App %s", app.AppName)
-		err := state.GetFramework().MC().DeleteApp(state.GetContext(), *app)
-		Expect(err).NotTo(HaveOccurred())
+		if s.afterSuite != nil {
+			By("User-provided After Suite", s.afterSuite)
+		}
+
+		By("Uninstalling App", func() {
+			app := getInstallApp()
+			logger.Log("Uninstalling App %s", app.AppName)
+			err := state.GetFramework().MC().DeleteApp(state.GetContext(), *app)
+			Expect(err).NotTo(HaveOccurred())
+		})
 	})
 
 	Describe("", func() {
