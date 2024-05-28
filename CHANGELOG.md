@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added example E2E test suite that uses the hello-world app to self-test the framework
+- Added `AfterSuite` hook to allow performing cleanup tasks after tests have finished.
 
 ## [1.1.4] - 2024-05-27
 

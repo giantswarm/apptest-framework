@@ -10,7 +10,7 @@
 //			WithInstallNamespace("kube-system").
 //			WithIsUpgrade(isUpgrade).
 //			WithValuesFile("./values.yaml").
-//			BeforeInstall(func() {
+//			AfterClusterReady(func() {
 //				// Do any pre-install checks here (ensure the cluster has needed pre-reqs)
 //			}).
 //			BeforeUpgrade(func() {
@@ -21,6 +21,9 @@
 //			Tests(func() {
 //				// Include calls to app tests here
 //			}).
+//			AfterSuite(func() {
+//				// Include any post-test cleanup
+//			})
 //			Run(t, "Basic Test")
 //	}
 package suite
