@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2024-05-28
+
 ### Added
 
 - Added example E2E test suite that uses the hello-world app to self-test the framework
@@ -99,7 +101,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Config package to provide standard app configuration
 - Client package to abstract some test functionality
 
-[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v1.1.4...HEAD
+[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/giantswarm/apptest-framework/compare/v1.1.4...v1.2.0
 [1.1.4]: https://github.com/giantswarm/apptest-framework/compare/v1.1.3...v1.1.4
 [1.1.3]: https://github.com/giantswarm/apptest-framework/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/giantswarm/apptest-framework/compare/v1.1.1...v1.1.2
