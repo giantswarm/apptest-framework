@@ -1,3 +1,5 @@
+TEST
+
 # apptest-framework
 
 <a href="https://godoc.org/github.com/giantswarm/apptest-framework"><img src="https://godoc.org/github.com/giantswarm/apptest-framework?status.svg"></a>
