@@ -49,7 +49,7 @@ require (
 	github.com/fatih/color v1.15.0 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/giantswarm/apiextensions-application v0.6.1 // indirect
-	github.com/giantswarm/cluster-standup-teardown v1.4.0 // indirect
+	github.com/giantswarm/cluster-standup-teardown v1.5.0 // indirect
 	github.com/giantswarm/k8smetadata v0.23.0 // indirect
 	github.com/giantswarm/kubectl-gs/v2 v2.45.0 // indirect
 	github.com/giantswarm/microerror v0.4.0 // indirect
