@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Update `clustertest` to v1.0.0 to support Releases with cluster Apps
 - Update `cluster-standup-teardown` to v1.5.0 to support Releases with cluster Apps
--
+
 ## [1.2.1] - 2024-06-10
 
 ### Changed
