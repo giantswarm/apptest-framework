@@ -9,7 +9,7 @@ replace github.com/giantswarm/apptest-framework => ../../
 
 require (
 	github.com/giantswarm/apptest-framework v1.3.0
-	github.com/giantswarm/clustertest v1.0.0
+	github.com/giantswarm/clustertest v1.1.0
 	github.com/onsi/ginkgo/v2 v2.19.0
 	github.com/onsi/gomega v1.33.1
 	k8s.io/api v0.26.3
@@ -51,13 +51,13 @@ require (
 	github.com/fatih/color v1.15.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/giantswarm/apiextensions-application v0.6.1 // indirect
-	github.com/giantswarm/cluster-standup-teardown v1.6.0 // indirect
+	github.com/giantswarm/cluster-standup-teardown v1.7.0 // indirect
 	github.com/giantswarm/k8smetadata v0.23.0 // indirect
 	github.com/giantswarm/kubectl-gs/v2 v2.45.0 // indirect
 	github.com/giantswarm/microerror v0.4.1 // indirect
 	github.com/giantswarm/organization-operator v1.6.3 // indirect
 	github.com/giantswarm/release-operator/v4 v4.1.0 // indirect
-	github.com/giantswarm/releases/sdk v0.2.0 // indirect
+	github.com/giantswarm/releases/sdk v0.3.0 // indirect
 	github.com/go-errors/errors v1.4.2 // indirect
 	github.com/go-gorp/gorp/v3 v3.1.0 // indirect
 	github.com/go-logr/logr v1.4.1 // indirect
