@@ -8,7 +8,7 @@ replace k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20221012153701-172d655
 
 require (
 	github.com/giantswarm/apiextensions-application v0.6.1
-	github.com/giantswarm/cluster-standup-teardown v1.7.1
+	github.com/giantswarm/cluster-standup-teardown v1.8.0
 	github.com/giantswarm/clustertest v1.3.1
 	github.com/onsi/ginkgo/v2 v2.19.0
 	github.com/onsi/gomega v1.33.1
@@ -128,7 +128,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
-	github.com/spf13/cobra v1.8.0 // indirect
+	github.com/spf13/cobra v1.8.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
