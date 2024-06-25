@@ -8,7 +8,7 @@ toolchain go1.22.4
 replace github.com/giantswarm/apptest-framework => ../../
 
 require (
-	github.com/giantswarm/apptest-framework v1.3.0
+	github.com/giantswarm/apptest-framework v1.4.0
 	github.com/giantswarm/clustertest v1.4.0
 	github.com/onsi/ginkgo/v2 v2.19.0
 	github.com/onsi/gomega v1.33.1
