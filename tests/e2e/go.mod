@@ -2,7 +2,7 @@ module e2e
 
 go 1.22.3
 
-toolchain go1.22.4
+toolchain go1.22.5
 
 // This makes sure we use the current version of the framewok found in the repo rather than the publish version
 replace github.com/giantswarm/apptest-framework => ../../
@@ -55,7 +55,7 @@ require (
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/giantswarm/apiextensions-application v0.6.2 // indirect
-	github.com/giantswarm/cluster-standup-teardown v1.10.0 // indirect
+	github.com/giantswarm/cluster-standup-teardown v1.11.0 // indirect
 	github.com/giantswarm/k8smetadata v0.25.0 // indirect
 	github.com/giantswarm/kubectl-gs/v2 v2.57.0 // indirect
 	github.com/giantswarm/microerror v0.4.1 // indirect
