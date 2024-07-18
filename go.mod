@@ -13,7 +13,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.19.0
 	github.com/onsi/gomega v1.33.1
 	golang.org/x/text v0.16.0
-	k8s.io/apimachinery v0.30.2
+	k8s.io/apimachinery v0.30.3
 	sigs.k8s.io/controller-runtime v0.18.4
 	sigs.k8s.io/yaml v1.4.0
 )
