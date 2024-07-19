@@ -43,7 +43,8 @@ type suite struct {
 	isUpgrade        bool
 	installNamespace string
 
-	inBundleApp string
+	inBundleApp  string
+	isDefaultApp bool
 
 	afterClusterReady func()
 	beforeUpgrade     func()
@@ -58,6 +59,7 @@ func New(testConfig config.TestConfig) *suite {
 		repoName:         testConfig.RepoName,
 		appCatalog:       testConfig.AppCatalog,
 		isUpgrade:        false,
+		isDefaultApp:     false,
 		installNamespace: "default",
 		valuesFile:       "./values.yaml",
 		inBundleApp:      "",
@@ -176,12 +178,23 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 			WithInCluster(false)
 		state.SetApplication(app)
 
+		s.isDefaultApp, err = cluster.IsDefaultApp(*app)
+		Expect(err).NotTo(HaveOccurred())
+		if s.isDefaultApp && !s.isUpgrade {
+			// If we're not an upgrade suite we install the override default app at creation
+			cluster = cluster.WithAppOverride(*app)
+		}
+
 		if s.inBundleApp != "" {
+			bundleVersion, err := application.GetLatestAppVersion(s.inBundleApp)
+			Expect(err).ToNot(HaveOccurred())
+			bundleVersion = strings.TrimPrefix(bundleVersion, "v")
+
 			bundleApp := application.New(fmt.Sprintf("%s-%s", cluster.Name, s.inBundleApp), s.inBundleApp).
 				WithCatalog(s.appCatalog).
 				WithOrganization(*cluster.Organization).
 				WithClusterName(cluster.Name).
-				WithVersion("latest").
+				WithVersion(bundleVersion).
 				WithInstallNamespace(cluster.Organization.GetNamespace()).
 				MustWithValues(fmt.Sprintf("clusterID: %s", cluster.Name), &application.TemplateValues{}).
 				WithInCluster(true)
@@ -190,6 +203,13 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 			bundleApp, err = bundles.OverrideChildApp(bundleApp, app)
 			Expect(err).NotTo(HaveOccurred())
 			state.SetBundleApplication(bundleApp)
+
+			s.isDefaultApp, err = cluster.IsDefaultApp(*bundleApp)
+			Expect(err).NotTo(HaveOccurred())
+			if s.isDefaultApp && !s.isUpgrade {
+				// If we're not an upgrade suite we install the override default app at creation
+				cluster = cluster.WithAppOverride(*bundleApp)
+			}
 		}
 
 		// Create new workload cluster
@@ -284,6 +304,11 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 		}
 
 		By("Uninstalling App", func() {
+			if s.isDefaultApp {
+				Skip("App is a default app - skipping")
+				return
+			}
+
 			app := getInstallApp()
 			logger.Log("Uninstalling App %s", app.AppName)
 			err := state.GetFramework().MC().DeleteApp(state.GetContext(), *app)
@@ -296,8 +321,12 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 			Describe("After Cluster Ready", s.afterClusterReady)
 		}
 
-		// TODO: Exclude this if default app
 		It("Ensure app isn't already installed", func() {
+			if s.isDefaultApp {
+				Skip("App is a default app - skipping")
+				return
+			}
+
 			appCR := getInstallApp()
 
 			logger.Log("Checking that App %s isn't already installed", appCR.AppName)
@@ -316,6 +345,11 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 		if s.isUpgrade {
 			Describe("Install previous version of app", func() {
 				It("Install the latest release of the application", func() {
+					if s.isDefaultApp {
+						Skip("App is a default app - skipping")
+						return
+					}
+
 					var app *application.Application
 					if s.inBundleApp != "" {
 						cluster := state.GetCluster()
@@ -344,11 +378,33 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 
 		Describe("Install app", func() {
 			It("Install the application with the version to test", func() {
-				app := getInstallApp()
+				if s.isDefaultApp && s.isUpgrade {
+					// If we're testing the upgrade of a default app we need to do so via a release upgrade
+					cluster := state.GetCluster()
+					app := state.GetApplication()
+					bundleApp := state.GetBundleApplication()
+					if bundleApp != nil {
+						cluster = cluster.WithAppOverride(*bundleApp)
+					} else {
+						cluster = cluster.WithAppOverride(*app)
+					}
 
-				ctx, cancel := context.WithTimeout(state.GetContext(), 5*time.Minute)
-				defer cancel()
-				client.InstallApp(ctx, app)
+					ctx, cancel := context.WithTimeout(state.GetContext(), 10*time.Minute)
+					defer cancel()
+					_, err := state.GetFramework().ApplyCluster(ctx, cluster)
+					Expect(err).ToNot(HaveOccurred())
+
+				} else if s.isDefaultApp {
+					Skip("App is a default app - skipping")
+					return
+				} else {
+					app := getInstallApp()
+
+					ctx, cancel := context.WithTimeout(state.GetContext(), 5*time.Minute)
+					defer cancel()
+					client.InstallApp(ctx, app)
+				}
+
 			})
 		})
 

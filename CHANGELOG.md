@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Support for testing default apps (and those within default bundles) as long as testing against a provider that supports Releases
+- Added example test suites for bundles and default apps
+
 ## [1.5.0] - 2024-06-25
 
 ### Changed

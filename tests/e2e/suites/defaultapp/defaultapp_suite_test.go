@@ -1,4 +1,4 @@
-package basic
+package defaultapp
 
 import (
 	"os"
@@ -23,13 +23,13 @@ const (
 	isUpgrade = false
 )
 
-func TestBasic(t *testing.T) {
-	installNamespace := "default"
+func TestDefaultApp(t *testing.T) {
+	installNamespace := "kube-system"
 
 	appConfig := config.TestConfig{
-		AppName:    "hello-world",
-		RepoName:   "hello-world-app",
-		AppCatalog: "giantswarm",
+		AppName:    "cluster-autoscaler",
+		RepoName:   "cluster-autoscaler-app",
+		AppCatalog: "default",
 		Providers:  []string{"capa"},
 	}
 
@@ -103,5 +103,5 @@ func TestBasic(t *testing.T) {
 			logger.Log("Cleaning up after tests have completed")
 
 		}).
-		Run(t, "Basic Test")
+		Run(t, "Default App Test")
 }
