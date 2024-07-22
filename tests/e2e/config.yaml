@@ -1,3 +1,5 @@
+# Note: This isn't actually used by the tests as we test different apps in different suites
+
 # To allow testing of the framework we're going to make use of the hello world app - https://github.com/giantswarm/hello-world-app
 appName: "hello-world"
 repoName: "hello-world-app"

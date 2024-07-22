@@ -1,4 +1,4 @@
-package basic
+package defaultbundleapp
 
 import (
 	"os"
@@ -23,12 +23,12 @@ const (
 	isUpgrade = false
 )
 
-func TestBasic(t *testing.T) {
-	installNamespace := "default"
+func TestDefaultBundleApp(t *testing.T) {
+	installNamespace := "kyverno"
 
 	appConfig := config.TestConfig{
-		AppName:    "hello-world",
-		RepoName:   "hello-world-app",
+		AppName:    "kyverno",
+		RepoName:   "kyverno-app",
 		AppCatalog: "giantswarm",
 		Providers:  []string{"capa"},
 	}
@@ -53,6 +53,7 @@ func TestBasic(t *testing.T) {
 		WithInstallNamespace(installNamespace).
 		WithIsUpgrade(isUpgrade).
 		WithValuesFile("./values.yaml").
+		InAppBundle("security-bundle").
 		AfterClusterReady(func() {
 
 			It("should connect to the management cluster", func() {
@@ -86,7 +87,7 @@ func TestBasic(t *testing.T) {
 				Eventually(func() error {
 					logger.Log("Checking if deployment exists in the workload cluster")
 					var dp appsv1.Deployment
-					err := wcClient.Get(state.GetContext(), types.NamespacedName{Namespace: installNamespace, Name: state.GetApplication().AppName}, &dp)
+					err := wcClient.Get(state.GetContext(), types.NamespacedName{Namespace: installNamespace, Name: "kyverno-admission-controller"}, &dp)
 					if err != nil {
 						logger.Log("Failed to get deployment: %v", err)
 					}
@@ -103,5 +104,5 @@ func TestBasic(t *testing.T) {
 			logger.Log("Cleaning up after tests have completed")
 
 		}).
-		Run(t, "Basic Test")
+		Run(t, "Default Bundle App Test")
 }
