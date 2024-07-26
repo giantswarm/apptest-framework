@@ -8,8 +8,8 @@ replace github.com/imdario/mergo => github.com/imdario/mergo v0.3.16
 
 require (
 	github.com/giantswarm/apiextensions-application v0.6.2
-	github.com/giantswarm/cluster-standup-teardown v1.17.1
-	github.com/giantswarm/clustertest v1.16.1
+	github.com/giantswarm/cluster-standup-teardown v1.17.2
+	github.com/giantswarm/clustertest v1.16.2
 	github.com/onsi/ginkgo/v2 v2.19.0
 	github.com/onsi/gomega v1.34.0
 	golang.org/x/text v0.16.0
@@ -59,7 +59,7 @@ require (
 	github.com/giantswarm/microerror v0.4.1 // indirect
 	github.com/giantswarm/organization-operator v1.6.3 // indirect
 	github.com/giantswarm/release-operator/v4 v4.2.0 // indirect
-	github.com/giantswarm/releases/sdk v0.5.1 // indirect
+	github.com/giantswarm/releases/sdk v0.6.0 // indirect
 	github.com/go-errors/errors v1.5.1 // indirect
 	github.com/go-gorp/gorp/v3 v3.1.0 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
