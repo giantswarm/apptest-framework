@@ -10,7 +10,7 @@ require (
 	github.com/giantswarm/apiextensions-application v0.6.2
 	github.com/giantswarm/cluster-standup-teardown v1.17.2
 	github.com/giantswarm/clustertest v1.16.2
-	github.com/onsi/ginkgo/v2 v2.19.0
+	github.com/onsi/ginkgo/v2 v2.19.1
 	github.com/onsi/gomega v1.34.0
 	golang.org/x/text v0.16.0
 	k8s.io/apimachinery v0.30.3

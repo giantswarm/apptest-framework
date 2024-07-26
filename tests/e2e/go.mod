@@ -12,7 +12,7 @@ replace github.com/imdario/mergo => github.com/imdario/mergo v0.3.16
 require (
 	github.com/giantswarm/apptest-framework v1.6.0
 	github.com/giantswarm/clustertest v1.16.2
-	github.com/onsi/ginkgo/v2 v2.19.0
+	github.com/onsi/ginkgo/v2 v2.19.1
 	github.com/onsi/gomega v1.34.0
 	k8s.io/api v0.30.3
 	k8s.io/apimachinery v0.30.3
