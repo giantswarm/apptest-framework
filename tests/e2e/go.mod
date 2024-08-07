@@ -2,7 +2,7 @@ module e2e
 
 go 1.22.4
 
-toolchain go1.22.5
+toolchain go1.22.6
 
 // This makes sure we use the current version of the framewok found in the repo rather than the publish version
 replace github.com/giantswarm/apptest-framework => ../../
