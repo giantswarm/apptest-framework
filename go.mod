@@ -12,7 +12,7 @@ require (
 	github.com/giantswarm/clustertest v1.17.0
 	github.com/onsi/ginkgo/v2 v2.19.1
 	github.com/onsi/gomega v1.34.1
-	golang.org/x/text v0.16.0
+	golang.org/x/text v0.17.0
 	k8s.io/apimachinery v0.30.3
 	sigs.k8s.io/controller-runtime v0.18.4
 	sigs.k8s.io/yaml v1.4.0
