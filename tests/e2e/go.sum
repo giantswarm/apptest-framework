@@ -116,10 +116,10 @@ github.com/fsnotify/fsnotify v1.7.0 h1:8JEhPFa5W2WU7YfeZzPNqzMP6Lwt7L2715Ggo0nos
 github.com/fsnotify/fsnotify v1.7.0/go.mod h1:40Bi/Hjc2AVfZrqy+aj+yEI+/bRxZnMJyTJwOpGvigM=
 github.com/giantswarm/apiextensions-application v0.6.2 h1:XL86OrpprWl5Wp38EUvUXt3ztTo25+V63oDVlFwDpNg=
 github.com/giantswarm/apiextensions-application v0.6.2/go.mod h1:8ylqSmDSzFblCppRQTFo8v9s/F6MX6RTusVVoDDfWso=
-github.com/giantswarm/cluster-standup-teardown v1.18.0 h1:q3hl+I2E3mZfHNPkOB+RCT89gha4XAWh5OKJ2Mh93YE=
-github.com/giantswarm/cluster-standup-teardown v1.18.0/go.mod h1:sSmC17IyvuhBboQX3B7JCyxQTiFeGbwvlKj+VvC6W9w=
-github.com/giantswarm/clustertest v1.17.0 h1:yT3AExMPNq6Go6Cf3pT4JjGwiHOmOsmhNjoH0P++XH0=
-github.com/giantswarm/clustertest v1.17.0/go.mod h1:yPGQghS+QAEmxrXzMRiO6Sx/WjMl0+5wCfiEy93L4/Q=
+github.com/giantswarm/cluster-standup-teardown v1.18.1 h1:UrKl4jz17x3F5jsZH4HVbJsFhVZiN7/mzmcS1QLOw24=
+github.com/giantswarm/cluster-standup-teardown v1.18.1/go.mod h1:bX8bT8M40JO07498c6sRKuiM9qKfg/GfdMawZYXpbto=
+github.com/giantswarm/clustertest v1.17.1 h1:D9lLew8wwHg4xUvqpuB8YfxcMqz/mwRqlmVdBQNLzKM=
+github.com/giantswarm/clustertest v1.17.1/go.mod h1:AkjPKRKm7BJlXd2Fe4BDfrwgpF30YDk4Mgfp0/tYME0=
 github.com/giantswarm/k8smetadata v0.25.0 h1:6mKmmm4xHPuBvxDMAkIhU5oj6KJkJSaR2s5esIsnHs4=
 github.com/giantswarm/k8smetadata v0.25.0/go.mod h1:QiQAyaZnwco1U0lENLF0Kp4bSN4dIPwIlHWEvUo3ES8=
 github.com/giantswarm/kubectl-gs/v2 v2.57.0 h1:IMmho55Qq+WE+frJXcTBhx19+J54xwu/j4+pGU5YecA=
