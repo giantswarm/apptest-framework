@@ -48,7 +48,7 @@ Once [bootstrapped](https://github.com/giantswarm/apptest-framework#installation
 
 There are 4 phases in which you can add tests:
 
-1. `AfterClusterReady` - These are run first, as soon as the workload cluster is deemed to be ready, and should be used to check for any needed pre-requisites in the cluster. This is optional and only need to be provided if you require some logic to run as soon as the cluster is stable.
+1. `AfterClusterReady` - These are run first, as soon as the workload cluster is deemed to be ready, and should be used to check for any needed pre-requisites in the cluster. This is optional and only need to be provided if you require some logic to run as soon as the cluster is stable. Note: Does not run for tests of default apps.
 1. `BeforeUpgrade` - These are only run if performing an upgrade tests and are run between installing the latest released version of your App and the version being tested. These are used to test that the App is in an expected state before performing the upgrade.
 1. `Tests` - This is where most of your tests will go and will be run after your App has been installed and marked as "Deployed" in the cluster. This is the minimum that needs to be provided.
 1. `AfterSuite` - This is performed during the cleanup after the tests have completed. This function will be triggered before the test App is uninstalled and before the workload cluster is deleted. This is optional and allows for any extra cleanup that might be required.
