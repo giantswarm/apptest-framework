@@ -122,7 +122,7 @@ If the bundle App is also a default app please make sure to also read the [Testi
 
 Nothing special needs to be done to a test suite to make it compatible with a default app, instead the framework will detect at runtime if the app being tested is a default App or not by checking it against the Release spec for that provider.
 
-Once thing to be aware of when testing default apps is it's not possible to perform any actions before the installation of the App as it is done as part of the cluster creation.
+One thing to be aware of when testing default apps is it's not possible to perform any actions before the installation of the App as it is done as part of the cluster creation.
 
 If testing an app within a bundle App that is a default App the framework will detect that bundle App from the Release and patch it to make sure the App being tested is installed as a child App during the cluster installtion phase.
 
