@@ -124,7 +124,7 @@ Nothing special needs to be done to a test suite to make it compatible with a de
 
 One thing to be aware of when testing default apps is it's not possible to perform any actions before the installation of the App as it is done as part of the cluster creation.
 
-If testing an app within a bundle App that is a default App the framework will detect that bundle App from the Release and patch it to make sure the App being tested is installed as a child App during the cluster installtion phase.
+If testing an app within a bundle App that is a default App, the framework will detect that bundle App from the Release and patch it to make sure the App being tested is installed as a child App during the cluster installation phase.
 
 > [!TIP]
 > Example: [tests/e2e/suites/defaultapp](https://github.com/giantswarm/apptest-framework/blob/534f57426d183921e042e09cf6694ac2756d3862/tests/e2e/suites/defaultapp/defaultapp_suite_test.go)
