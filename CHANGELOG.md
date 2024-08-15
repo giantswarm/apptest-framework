@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added more docs on how to write App tests
 
+### Changed
+
+- Updated all modules to latest (including support for Kubernetes v1.31)
+
+### Fixed
+
+- Replace `containerdVolumeSizeGB` and `kubeletVolumeSizeGB` with `libVolumeSizeGB` (from cluster-standup-teardown upgrade)
+
 ## [1.6.0] - 2024-07-22
 
 ### Added

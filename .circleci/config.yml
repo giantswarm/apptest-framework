@@ -9,6 +9,7 @@ workflows:
       - architect/go-test:
           context: architect
           name: go-test
+          resource_class: "medium+"
           filters:
             # Trigger job also on git tag.
             tags:
