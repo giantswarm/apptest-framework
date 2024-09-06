@@ -9,3 +9,6 @@ CVE-2024-25620
 
 # k8s.io/apiserver@v0.26.3
 CVE-2020-8561
+
+# golang.org/x/net - Denial of Service (DoS)
+CVE-2024-8421
