@@ -1,4 +1,4 @@
-FROM golang:1.22
+FROM golang:1.23
 
 RUN apt-get update \
   && apt-get install --no-install-recommends --no-install-suggests -y ca-certificates jq yq \
