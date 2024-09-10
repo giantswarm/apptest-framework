@@ -2,7 +2,7 @@ module github.com/giantswarm/apptest-framework
 
 go 1.22.4
 
-toolchain go1.22.6
+toolchain go1.23.1
 
 replace github.com/imdario/mergo => github.com/imdario/mergo v0.3.16
 
