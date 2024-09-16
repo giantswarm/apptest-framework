@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.0] - 2024-09-16
+
 ## [1.8.0] - 2024-09-06
 
 ### Changed
@@ -159,7 +161,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Config package to provide standard app configuration
 - Client package to abstract some test functionality
 
-[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v1.8.0...HEAD
+[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v1.9.0...HEAD
+[1.9.0]: https://github.com/giantswarm/apptest-framework/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/giantswarm/apptest-framework/compare/v1.7.1...v1.8.0
 [1.7.1]: https://github.com/giantswarm/apptest-framework/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/giantswarm/apptest-framework/compare/v1.6.0...v1.7.0
