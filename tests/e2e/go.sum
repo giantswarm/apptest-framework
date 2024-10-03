@@ -125,8 +125,8 @@ github.com/giantswarm/apiextensions-application v0.6.2 h1:XL86OrpprWl5Wp38EUvUXt
 github.com/giantswarm/apiextensions-application v0.6.2/go.mod h1:8ylqSmDSzFblCppRQTFo8v9s/F6MX6RTusVVoDDfWso=
 github.com/giantswarm/cluster-standup-teardown v1.25.3 h1:q1AkhZmpQN2QweJMurpt4Okvh+JSwM0ObmAHaIz8zwo=
 github.com/giantswarm/cluster-standup-teardown v1.25.3/go.mod h1:5KKGBU7buz1/vdFQrv4xm6UBfO4DTX9jRuyf3RF3qzo=
-github.com/giantswarm/clustertest v1.26.1 h1:Mw87nZUD2J2sI6pOD9MiBgb7f6/SFK16zG6K3BIxMFA=
-github.com/giantswarm/clustertest v1.26.1/go.mod h1:G7plyfSfAlRINQD5V5X7mePZMYqjM6h1BxGZU/YRk/k=
+github.com/giantswarm/clustertest v1.27.2 h1:ji2Yzi/7bRu+gnihyEw7pNhuO6g1rr1LAsz9L6fApbA=
+github.com/giantswarm/clustertest v1.27.2/go.mod h1:G7plyfSfAlRINQD5V5X7mePZMYqjM6h1BxGZU/YRk/k=
 github.com/giantswarm/k8smetadata v0.25.0 h1:6mKmmm4xHPuBvxDMAkIhU5oj6KJkJSaR2s5esIsnHs4=
 github.com/giantswarm/k8smetadata v0.25.0/go.mod h1:QiQAyaZnwco1U0lENLF0Kp4bSN4dIPwIlHWEvUo3ES8=
 github.com/giantswarm/kubectl-gs/v2 v2.57.0 h1:IMmho55Qq+WE+frJXcTBhx19+J54xwu/j4+pGU5YecA=
