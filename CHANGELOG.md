@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.2] - 2024-10-08
+
 ### Fixed
 
 - Update `clustertest` and `cluster-standup-teardown` with fix for loading existing workload cluster
@@ -177,7 +179,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Config package to provide standard app configuration
 - Client package to abstract some test functionality
 
-[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v1.10.1...HEAD
+[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v1.10.2...HEAD
+[1.10.2]: https://github.com/giantswarm/apptest-framework/compare/v1.10.1...v1.10.2
 [1.10.1]: https://github.com/giantswarm/apptest-framework/compare/v1.10.0...v1.10.1
 [1.10.0]: https://github.com/giantswarm/apptest-framework/compare/v1.9.0...v1.10.0
 [1.9.0]: https://github.com/giantswarm/apptest-framework/compare/v1.8.0...v1.9.0
