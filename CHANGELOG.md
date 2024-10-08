@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Update `clustertest` and `cluster-standup-teardown` with fix for loading existing workload cluster
+
 ## [1.10.1] - 2024-09-19
 
 ### Fixed
