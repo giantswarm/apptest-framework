@@ -7,7 +7,7 @@ replace github.com/giantswarm/apptest-framework => ../../
 
 replace github.com/imdario/mergo => github.com/imdario/mergo v0.3.16
 
-replace github.com/alessio/shellescape => al.essio.dev/pkg/shellescape v1.4.2
+replace github.com/alessio/shellescape => al.essio.dev/pkg/shellescape v1.5.1
 
 require (
 	github.com/giantswarm/apptest-framework v1.10.1
