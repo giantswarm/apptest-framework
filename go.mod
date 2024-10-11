@@ -8,7 +8,7 @@ replace github.com/alessio/shellescape => al.essio.dev/pkg/shellescape v1.5.1
 
 require (
 	github.com/giantswarm/apiextensions-application v0.6.2
-	github.com/giantswarm/cluster-standup-teardown v1.25.6
+	github.com/giantswarm/cluster-standup-teardown v1.25.7
 	github.com/giantswarm/clustertest v1.27.3
 	github.com/onsi/ginkgo/v2 v2.20.2
 	github.com/onsi/gomega v1.34.2
