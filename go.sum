@@ -42,8 +42,8 @@ github.com/bshuster-repo/logrus-logstash-hook v1.0.0 h1:e+C0SB5R1pu//O4MQ3f9cFuP
 github.com/bshuster-repo/logrus-logstash-hook v1.0.0/go.mod h1:zsTqEiSzDgAa/8GZR7E1qaXrhYNDKBYy5/dWPTIflbk=
 github.com/cenkalti/backoff/v4 v4.3.0 h1:MyRJ/UdXutAwSAT+s3wNd7MfTIcy71VQueUuFK343L8=
 github.com/cenkalti/backoff/v4 v4.3.0/go.mod h1:Y3VNntkOUPxTVeUxJ/G5vcM//AlwfmyYozVcomhLiZE=
-github.com/cert-manager/cert-manager v1.16.0 h1:Gz20ezVUW1hveItLurl4OuFmSwwo0d7vr5gULjyeGlc=
-github.com/cert-manager/cert-manager v1.16.0/go.mod h1:MfLVTL45hFZsqmaT1O0+b2ugaNNQQZttSFV9hASHUb0=
+github.com/cert-manager/cert-manager v1.16.1 h1:1ceFMqTtwiqY2vyfaRT85CNiVmK7pJjt3GebYCx9awY=
+github.com/cert-manager/cert-manager v1.16.1/go.mod h1:MfLVTL45hFZsqmaT1O0+b2ugaNNQQZttSFV9hASHUb0=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/chai2010/gettext-go v1.0.3 h1:9liNh8t+u26xl5ddmWLmsOsdNLwkdRTg5AG+JnTiM80=
@@ -123,10 +123,10 @@ github.com/fxamacker/cbor/v2 v2.7.0 h1:iM5WgngdRBanHcxugY4JySA0nk1wZorNOpTgCMedv
 github.com/fxamacker/cbor/v2 v2.7.0/go.mod h1:pxXPTn3joSm21Gbwsv0w9OSA2y1HFR9qXEeXQVeNoDQ=
 github.com/giantswarm/apiextensions-application v0.6.2 h1:XL86OrpprWl5Wp38EUvUXt3ztTo25+V63oDVlFwDpNg=
 github.com/giantswarm/apiextensions-application v0.6.2/go.mod h1:8ylqSmDSzFblCppRQTFo8v9s/F6MX6RTusVVoDDfWso=
-github.com/giantswarm/cluster-standup-teardown v1.25.7 h1:PXLHJwqRziX6o5z25IELOmUW4bflb51NedNUPUFCnUE=
-github.com/giantswarm/cluster-standup-teardown v1.25.7/go.mod h1:+uKqwKsbydiP+lIV9SJb2oqXsrBYrK1F9RULdsj1YJI=
-github.com/giantswarm/clustertest v1.27.3 h1:F1T299vaxdPu3iGrhHWZoiEG39Q7Sc5hgvvVEmRk/gk=
-github.com/giantswarm/clustertest v1.27.3/go.mod h1:NkH6TIwV11FWWoQ9bQ0egGV3Wke/n2KYHPg+7P5i6Is=
+github.com/giantswarm/cluster-standup-teardown v1.25.8 h1:HYup5T96UB54UZUmHJxOiAGikV11KXj6IluF7sp7Nc0=
+github.com/giantswarm/cluster-standup-teardown v1.25.8/go.mod h1:B79V2m/YK/rWyz5YsSUUegj3K+o1zrc4hPznBTaRCMs=
+github.com/giantswarm/clustertest v1.28.0 h1:t1dpe4auVul1Rv/J0izozjj1WoCpPDcpe2fhzskNf/o=
+github.com/giantswarm/clustertest v1.28.0/go.mod h1:E3tJ0pz3E2q21jmGSyR5aU62GA8kUUEOl3+yO8ppItQ=
 github.com/giantswarm/k8smetadata v0.25.0 h1:6mKmmm4xHPuBvxDMAkIhU5oj6KJkJSaR2s5esIsnHs4=
 github.com/giantswarm/k8smetadata v0.25.0/go.mod h1:QiQAyaZnwco1U0lENLF0Kp4bSN4dIPwIlHWEvUo3ES8=
 github.com/giantswarm/kubectl-gs/v2 v2.57.0 h1:IMmho55Qq+WE+frJXcTBhx19+J54xwu/j4+pGU5YecA=
@@ -137,8 +137,8 @@ github.com/giantswarm/organization-operator v1.6.4 h1:t0G0hoB7TfeGzRnr58NIwO6LAm
 github.com/giantswarm/organization-operator v1.6.4/go.mod h1:Rw9gG/ReI5YfvoC85F9H5wH2aWguUR7JY/NfTjZC2Jc=
 github.com/giantswarm/release-operator/v4 v4.2.0 h1:8aU8V3BlF/sKmYG1MgcPGXs8Q/cOlZfhgK4/oBfMPbg=
 github.com/giantswarm/release-operator/v4 v4.2.0/go.mod h1:/ew0vh4BnfJqOddNTcm7iAHvm7g4MBp5C+pxi+H4ydk=
-github.com/giantswarm/releases/sdk v0.6.0 h1:wAILUls7eiaztrq6B/mYdUsmEMzy+Ik+c9++OWoN3/w=
-github.com/giantswarm/releases/sdk v0.6.0/go.mod h1:EVc38EK1t7VsZPZnFFER1haLMkk7qBC6H0o8bOWWkak=
+github.com/giantswarm/releases/sdk v0.8.0 h1:BxdAEW/yv8CCcmQBge9Ju10IZI+svtjW4tzqPUtLHDk=
+github.com/giantswarm/releases/sdk v0.8.0/go.mod h1:DK7pZ297ngdC/gOdPUldkqm9MIdwzHry+Ky0UuCRYv0=
 github.com/go-errors/errors v1.5.1 h1:ZwEMSLRCapFLflTpT7NKaAc7ukJ8ZPEjzlxt8rPN8bk=
 github.com/go-errors/errors v1.5.1/go.mod h1:sIVyrIiJhuEF+Pj9Ebtd6P/rEYROXFi3BopGUQ5a5Og=
 github.com/go-gorp/gorp/v3 v3.1.0 h1:ItKF/Vbuj31dmV4jxA1qblpSwkl9g1typ24xoe70IGs=
@@ -187,8 +187,6 @@ github.com/google/go-cmp v0.5.2/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/
 github.com/google/go-cmp v0.5.9/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
 github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
 github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
-github.com/google/go-github/v62 v62.0.0 h1:/6mGCaRywZz9MuHyw9gD1CwsbmBX8GWsbFkwMmHdhl4=
-github.com/google/go-github/v62 v62.0.0/go.mod h1:EMxeUqGJq2xRu9DYBMwel/mr7kZrzUOfQmmpYrZn2a4=
 github.com/google/go-github/v66 v66.0.0 h1:ADJsaXj9UotwdgK8/iFZtv7MLc8E8WBl62WLd/D/9+M=
 github.com/google/go-github/v66 v66.0.0/go.mod h1:+4SO9Zkuyf8ytMj0csN1NR/5OTR+MfqPp8P8dVlcvY4=
 github.com/google/go-querystring v1.1.0 h1:AnCroh3fv4ZBgVIf1Iwtovgjaw/GiKJo8M8yD/fhyJ8=
@@ -568,8 +566,8 @@ k8s.io/utils v0.0.0-20240921022957-49e7df575cb6 h1:MDF6h2H/h4tbzmtIKTuctcwZmY0tY
 k8s.io/utils v0.0.0-20240921022957-49e7df575cb6/go.mod h1:OLgZIPagt7ERELqWJFomSt595RzquPNLL48iOWgYOg0=
 oras.land/oras-go v1.2.6 h1:z8cmxQXBU8yZ4mkytWqXfo6tZcamPwjsuxYU81xJ8Lk=
 oras.land/oras-go v1.2.6/go.mod h1:OVPc1PegSEe/K8YiLfosrlqlqTN9PUyFvOw5Y9gwrT8=
-sigs.k8s.io/cluster-api v1.8.3 h1:N6i25rF5QMadwVg2UPfuO6CzmNXjqnF2r1MAO+kcsro=
-sigs.k8s.io/cluster-api v1.8.3/go.mod h1:pXv5LqLxuIbhGIXykyNKiJh+KrLweSBajVHHitPLyoY=
+sigs.k8s.io/cluster-api v1.8.4 h1:jBKQH1H/HUdUFk8T6qDzIxZJfWw1F5ZP0ZpYQJDmTHs=
+sigs.k8s.io/cluster-api v1.8.4/go.mod h1:pXv5LqLxuIbhGIXykyNKiJh+KrLweSBajVHHitPLyoY=
 sigs.k8s.io/controller-runtime v0.19.0 h1:nWVM7aq+Il2ABxwiCizrVDSlmDcshi9llbaFbC0ji/Q=
 sigs.k8s.io/controller-runtime v0.19.0/go.mod h1:iRmWllt8IlaLjvTTDLhRBXIEtkCK6hwVBJJsYS9Ajf4=
 sigs.k8s.io/e2e-framework v0.4.0 h1:4yYmFDNNoTnazqmZJXQ6dlQF1vrnDbutmxlyvBpC5rY=
