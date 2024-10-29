@@ -9,11 +9,12 @@ workflows:
       - architect/go-test:
           context: architect
           name: go-test
-          resource_class: "medium+"
+          resource_class: medium+
           filters:
             # Trigger job also on git tag.
             tags:
               only: /^v.*/
+
       - architect/push-to-registries:
           context: architect
           name: push-to-registries
@@ -22,3 +23,7 @@ workflows:
           filters:
             tags:
               only: /^v.*/
+            branches:
+              ignore:
+                - main
+                - master
