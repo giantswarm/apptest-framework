@@ -12,7 +12,7 @@ replace github.com/alessio/shellescape => al.essio.dev/pkg/shellescape v1.5.1
 require (
 	github.com/giantswarm/apptest-framework v1.10.2
 	github.com/giantswarm/clustertest v1.30.2
-	github.com/onsi/ginkgo/v2 v2.21.0
+	github.com/onsi/ginkgo/v2 v2.22.0
 	github.com/onsi/gomega v1.35.1
 	k8s.io/api v0.31.2
 	k8s.io/apimachinery v0.31.2
@@ -59,7 +59,7 @@ require (
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/giantswarm/apiextensions-application v0.6.2 // indirect
-	github.com/giantswarm/cluster-standup-teardown v1.27.2 // indirect
+	github.com/giantswarm/cluster-standup-teardown v1.27.3 // indirect
 	github.com/giantswarm/k8smetadata v0.25.0 // indirect
 	github.com/giantswarm/kubectl-gs/v2 v2.57.0 // indirect
 	github.com/giantswarm/microerror v0.4.1 // indirect
