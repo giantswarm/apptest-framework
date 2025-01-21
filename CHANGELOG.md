@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Updated `cluster-standup-teardown` to stop using spot instances for CAPA WCs
+
 ## [1.10.2] - 2024-10-08
 
 ### Fixed
