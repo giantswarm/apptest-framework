@@ -15,4 +15,4 @@ mkdir -p ${REPORT_DIR}
 echo "Test results will be saved to: ${REPORT_DIR}"
 
 echo "🛠️ Building test suites... (this may take a short while with no log output)"
-ginkgo --output-dir=${REPORT_DIR} --junit-report=test-results.xml --timeout 4h --keep-going -v -r $@ ${SUITES_TO_RUN}
+ginkgo --output-dir=${REPORT_DIR} --junit-report=test-results.xml --json-report=test-results.json --timeout 4h --keep-going -v -r $@ ${SUITES_TO_RUN}

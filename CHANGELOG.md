@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Enable JSON output for test results.
+
 ## [1.11.0] - 2025-01-21
 
 ### Changed
