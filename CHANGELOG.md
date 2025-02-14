@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Enable JSON output for test results.
+- Update to Go v1.24
 
 ## [1.11.0] - 2025-01-21
 
