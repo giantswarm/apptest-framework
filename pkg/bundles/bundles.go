@@ -54,7 +54,8 @@ func OverrideChildApp(bundleApp *application.Application, childApp *application.
 
 func isCamelCaseName(appName string) bool {
 	return strings.EqualFold(appName, "security-bundle") ||
-		strings.EqualFold(appName, "observability-bundle")
+		strings.EqualFold(appName, "observability-bundle") ||
+		strings.EqualFold(appName, "gateway-api-bundle")
 }
 
 func isHyphenName(appName string) bool {
