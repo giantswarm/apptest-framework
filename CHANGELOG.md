@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.12.0] - 2025-02-20
+
 ### Added
 
 - Add support for gateway-api-bundle.
@@ -194,7 +196,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Config package to provide standard app configuration
 - Client package to abstract some test functionality
 
-[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v1.11.0...HEAD
+[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v1.12.0...HEAD
+[1.12.0]: https://github.com/giantswarm/apptest-framework/compare/v1.11.0...v1.12.0
 [1.11.0]: https://github.com/giantswarm/apptest-framework/compare/v1.10.2...v1.11.0
 [1.10.2]: https://github.com/giantswarm/apptest-framework/compare/v1.10.1...v1.10.2
 [1.10.1]: https://github.com/giantswarm/apptest-framework/compare/v1.10.0...v1.10.1
