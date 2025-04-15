@@ -20,7 +20,7 @@ type TestConfig struct {
 func MustLoad(configPath string) TestConfig {
 	configPath, _ = filepath.Abs(configPath)
 	config := TestConfig{}
-	yamlFile, _ := os.ReadFile(configPath)
+	yamlFile, _ := os.ReadFile(configPath) // #nosec G304
 	_ = yaml.Unmarshal(yamlFile, &config)
 	return config
 }
