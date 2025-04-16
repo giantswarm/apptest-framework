@@ -9,11 +9,10 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo/v2" //nolint:staticcheck
+	. "github.com/onsi/gomega"    //nolint:staticcheck
 
 	"github.com/giantswarm/apiextensions-application/api/v1alpha1"
-	applicationv1alpha1 "github.com/giantswarm/apiextensions-application/api/v1alpha1"
 	"github.com/giantswarm/cluster-standup-teardown/pkg/clusterbuilder"
 	"github.com/giantswarm/cluster-standup-teardown/pkg/standup"
 	"github.com/giantswarm/cluster-standup-teardown/pkg/teardown"
@@ -331,7 +330,7 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 
 			logger.Log("Checking that App %s isn't already installed", appCR.AppName)
 
-			app := &applicationv1alpha1.App{
+			app := &v1alpha1.App{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      appCR.InstallName,
 					Namespace: appCR.GetNamespace(),
