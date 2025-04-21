@@ -34,9 +34,10 @@ import (
 
 type suite struct {
 	// Set from TestConfig
-	appName    string
-	repoName   string
-	appCatalog string
+	appName     string
+	installName string
+	repoName    string
+	appCatalog  string
 
 	valuesFile       string
 	isUpgrade        bool
@@ -55,6 +56,7 @@ type suite struct {
 func New(testConfig config.TestConfig) *suite {
 	return &suite{
 		appName:          testConfig.AppName,
+		installName:      testConfig.AppName,
 		repoName:         testConfig.RepoName,
 		appCatalog:       testConfig.AppCatalog,
 		isUpgrade:        false,
@@ -78,6 +80,13 @@ func (s *suite) WithIsUpgrade(isUpgrade bool) *suite {
 // If not set this defaults to the `default` namespapce.
 func (s *suite) WithInstallNamespace(namespace string) *suite {
 	s.installNamespace = namespace
+	return s
+}
+
+// WithInstallName sets the name to install the App as (prefixed with the cluster name).
+// If not set this defaults to the `appName` value.
+func (s *suite) WithInstallName(name string) *suite {
+	s.installName = name
 	return s
 }
 
@@ -166,7 +175,11 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 		state.SetCluster(cluster)
 
 		// Create app
-		app := application.New(fmt.Sprintf("%s-%s", cluster.Name, s.appName), s.appName).
+		installName := s.installName
+		if installName == "" {
+			installName = s.appName
+		}
+		app := application.New(fmt.Sprintf("%s-%s", cluster.Name, installName), s.appName).
 			WithRepoName(s.repoName).
 			WithCatalog(s.appCatalog).
 			WithOrganization(*cluster.Organization).
@@ -309,7 +322,7 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 			}
 
 			app := getInstallApp()
-			logger.Log("Uninstalling App %s", app.AppName)
+			logger.Log("Uninstalling App %s (%s)", app.AppName, app.InstallName)
 			err := state.GetFramework().MC().DeleteApp(state.GetContext(), *app)
 			Expect(err).NotTo(HaveOccurred())
 		})
