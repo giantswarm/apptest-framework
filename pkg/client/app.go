@@ -23,7 +23,7 @@ func InstallApp(ctx context.Context, app *application.Application) {
 	Expect(err).NotTo(HaveOccurred())
 	version := builtApp.Spec.Version
 
-	logger.Log("Installing App %s (version: %s)", app.AppName, version)
+	logger.Log("Installing App %s as %s (version: %s)", app.AppName, app.InstallName, version)
 
 	err = state.GetFramework().MC().DeployApp(state.GetContext(), *app)
 	Expect(err).NotTo(HaveOccurred())
