@@ -1,10 +1,5 @@
-# pkg:golang/helm.sh/helm/v3@v3.17.2
+# pkg:golang/helm.sh/helm/v3@v3.17.3
 CVE-2019-25210
-CVE-2025-32386
-CVE-2025-32387
 
-# pkg:golang/k8s.io/apiserver@v0.32.3
+# pkg:golang/k8s.io/apiserver@v0.33.0
 CVE-2020-8561
-
-# pkg:golang/golang.org/x/net@v0.37.0
-CVE-2025-22872
