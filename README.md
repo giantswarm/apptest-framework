@@ -104,6 +104,7 @@ Optionally, the following can be set to re-use an existing workload cluster:
 
 - `E2E_WC_NAME` - the name of the workload cluster on the MC
 - `E2E_WC_NAMESPACE` - the namespace the workload cluser is found in
+- `E2E_WC_KEEP` - set to a truthy value to skip deleting the workload cluster at the end of the tests
 
 Once those are set, you can trigger the E2E tests in you App repo with the following:
 
