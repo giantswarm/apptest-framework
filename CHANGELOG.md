@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### BREAKING CHANGE
+
+- `suite.New()` no longer takes in the config file path and instead automatically discovers it from either:
+  - a `config.yaml` file in the same directory as the test suite itself, or
+  - at `/.tests/e2e/config.yaml` if no suite-specific config is found
+
+### Added
+
+- Automatically convert `E2E_APP_VERSION=latest` to the actual version value
+- Initial support for MC App testing (work in progress)
+
 ## [1.13.0] - 2025-04-22
 
 ### Fixed

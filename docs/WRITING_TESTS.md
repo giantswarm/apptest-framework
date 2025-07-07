@@ -15,6 +15,34 @@ API documentation for this framework can be found at: [pkg.go.dev/github.com/gia
 
 This test framework also make use of [clustertest](https://github.com/giantswarm/clustertest) for a lot of the functionality when interacting with clusters. The API documentation for this library can be found at: [https://godoc.org/github.com/giantswarm/clustertest](https://godoc.org/github.com/giantswarm/clustertest).
 
+## Test Config
+
+This framework expects, and relies on, some config to be supplied for the test suites that indicate the App being tested and the environment to test in.
+The definition of the config can be found in `./pkg/config/config.go` but an annotated example is provided below:
+
+```yaml
+# appName: The name of the app as it will be installed
+appName: "hello-world"
+# reponame: The name of the Apps repository on GitHub (this may be the same as `appName`)
+repoName: "hello-world-app"
+# appCatalog: The (production) catalog that the App gets published to. This will also be used to determine the dev catalog.
+appCatalog: "giantswarm"
+
+# providers: A list of CAPI providers to run the tests against when triggered from a PR.
+# This defaults to just `capa` if not supplied.
+providers:
+- capa
+
+# isMCTest: A boolean indicating whether this test should run on the management cluster rather than creating a workload cluster for the tests.
+# This defaults to false
+isMCTest: true
+```
+
+There are two locations that the `config.yaml` can be found:
+
+1. Alongside the test suite itself, e.g. `./tests/e2e/suites/basic/config.yaml`. If found this takes priority.
+2. In the e2e directory, e.g. `./tests/e2e/config.yaml`. This applies to all test suites that don't include a dedicated configuration file.
+
 ## Adding New Test Suites
 
 If you need to test different configured functionality of your App (e.g. a different set of values provided when installing) you can create a new test suite for each of these variations. Each test suite should be run in isolation in its own test workload cluster so it doesn't interfere with other tests.
@@ -28,6 +56,7 @@ E.g.
 ├── 📂 suites
 │  ├── 📂 basic
 │  │  ├── 📄 basic_suite_test.go
+│  │  ├── 📄 config.yaml
 │  │  └── 📄 values.yaml
 │  └── 📂 variation
 │     ├── 📄 variation_suite_test.go
@@ -67,7 +96,7 @@ In this new test case you then need to call `WithIsUpgrade(true)` on the suite.
 E.g.
 
 ```go
-suite.New(appConfig).
+suite.New().
   WithInstallNamespace(installNamespace).
   WithIsUpgrade(true).
   WithValuesFile("./values.yaml").
@@ -102,7 +131,7 @@ If the App you're wanting to test is deployed as part of a bundle then you need 
 E.g.
 
 ```go
-suite.New(config.MustLoad("../../config.yaml")).
+suite.New().
   InAppBundle("auth-bundle").
   WithInstallNamespace("kube-system").
   ...etc...
