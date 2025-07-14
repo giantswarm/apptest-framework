@@ -260,10 +260,13 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 
 		if s.isMCTest {
 			logger.Log("Confirming that we're working with an ephemeral MC for this MC App test suite")
-			logger.Log("MC Name: '%s', Test Cluster Name: '%s'", state.GetFramework().MC().GetClusterName(), state.GetCluster().Name)
-			Expect(state.GetFramework().MC().GetClusterName() == state.GetCluster().Name).To(BeTrue(), "We're not pointing to the MC cluster but instead trying to use a WC")
-			logger.Log("MC is ephemeral: '%t'", isEphemeralTestMC())
-			Expect(isEphemeralTestMC()).To(BeTrue(), "The MC being used for testing is not an ephemeral MC. Tests could cause side-effects so we block running on non-ephemeral")
+
+			logger.Log("MC Name: '%s', Test Cluster Name: '%s'", cleanClusterName(state.GetFramework().MC().GetClusterName()), cleanClusterName(state.GetCluster().Name))
+			Expect(cleanClusterName(state.GetFramework().MC().GetClusterName()) == cleanClusterName(state.GetCluster().Name)).To(BeTrue(), "We're not pointing to the MC cluster but instead trying to use a WC")
+
+			isEphemeral := isEphemeralTestMC()
+			logger.Log("MC is ephemeral: '%t'", isEphemeral)
+			Expect(isEphemeral).To(BeTrue(), "The MC being used for testing is not an ephemeral MC. Tests could cause side-effects so we block running on non-ephemeral")
 		} else {
 			// Create new workload cluster
 			logger.Log("Creating new workload cluster")
@@ -483,7 +486,11 @@ func getInstallApp() *application.Application {
 
 func isEphemeralTestMC() bool {
 	values := &application.ClusterValues{}
-	err := state.GetFramework().MC().GetHelmValues(state.GetCluster().Name, state.GetCluster().GetNamespace(), values)
+	err := state.GetFramework().MC().GetHelmValues(cleanClusterName(state.GetFramework().MC().GetClusterName()), "org-giantswarm", values)
 	Expect(err).NotTo(HaveOccurred())
 	return strings.Contains(values.BaseDomain, "ephemeral")
+}
+
+func cleanClusterName(clusterName string) string {
+	return strings.TrimPrefix(clusterName, "teleport.giantswarm.io-")
 }
