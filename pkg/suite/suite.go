@@ -262,7 +262,7 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 			logger.Log("Confirming that we're working with an ephemeral MC for this MC App test suite")
 			logger.Log("MC Name: '%s', Test Cluster Name: '%s'", state.GetFramework().MC().GetClusterName(), state.GetCluster().Name)
 			Expect(state.GetFramework().MC().GetClusterName() == state.GetCluster().Name).To(BeTrue(), "We're not pointing to the MC cluster but instead trying to use a WC")
-			logger.Log("MC is ephemeral: '%t'", state.GetCluster().Name)
+			logger.Log("MC is ephemeral: '%t'", isEphemeralTestMC())
 			Expect(isEphemeralTestMC()).To(BeTrue(), "The MC being used for testing is not an ephemeral MC. Tests could cause side-effects so we block running on non-ephemeral")
 		} else {
 			// Create new workload cluster
