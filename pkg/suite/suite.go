@@ -258,7 +258,11 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 			}
 		}
 
-		if !s.isMCTest {
+		if s.isMCTest {
+			logger.Log("Confirming that we're working with an ephemeral MC for this MC App test suite")
+			Expect(state.GetFramework().MC().GetClusterName() == state.GetCluster().Name).To(BeTrue(), "We're not pointing to the MC cluster but instead trying to use a WC")
+			Expect(isEphemeralTestMC()).To(BeTrue(), "The MC being used for testing is not an ephemeral MC. Tests could cause side-effects so we block running on non-ephemeral")
+		} else {
 			// Create new workload cluster
 			logger.Log("Creating new workload cluster")
 
@@ -335,10 +339,6 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 
 			logger.Log("Workload cluster ready to use")
 		}
-
-		logger.Log("Confirming that the cluster being tested matches the expected cluster type")
-		// We check if the cluster being tested is the MC or not and compare that to if an MC test is expected
-		Expect(state.GetFramework().MC().GetClusterName() == state.GetCluster().Name).To(Equal(s.isMCTest))
 	})
 
 	AfterSuite(func() {
@@ -477,4 +477,11 @@ func getInstallApp() *application.Application {
 		return bundleApp
 	}
 	return state.GetApplication()
+}
+
+func isEphemeralTestMC() bool {
+	values := &application.ClusterValues{}
+	err := state.GetFramework().MC().GetHelmValues(state.GetCluster().Name, state.GetCluster().GetNamespace(), values)
+	Expect(err).NotTo(HaveOccurred())
+	return strings.Contains(values.BaseDomain, "ephemeral")
 }
