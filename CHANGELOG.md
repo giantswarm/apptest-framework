@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.14.0] - 2025-07-17
+
 ### BREAKING CHANGE
 
 - `suite.New()` no longer takes in the config file path and instead automatically discovers it from either:
@@ -217,7 +219,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Config package to provide standard app configuration
 - Client package to abstract some test functionality
 
-[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v1.13.0...HEAD
+[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v1.14.0...HEAD
+[1.14.0]: https://github.com/giantswarm/apptest-framework/compare/v1.13.0...v1.14.0
 [1.13.0]: https://github.com/giantswarm/apptest-framework/compare/v1.12.0...v1.13.0
 [1.12.0]: https://github.com/giantswarm/apptest-framework/compare/v1.11.0...v1.12.0
 [1.11.0]: https://github.com/giantswarm/apptest-framework/compare/v1.10.2...v1.11.0
