@@ -6,7 +6,7 @@
 // # Example
 //
 //	func TestBasic(t *testing.T) {
-//		suite.New(config.MustLoad("../../config.yaml")).
+//		suite.New().
 //			WithInstallNamespace("kube-system").
 //			WithIsUpgrade(isUpgrade).
 //			WithValuesFile("./values.yaml").

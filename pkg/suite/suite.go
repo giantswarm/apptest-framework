@@ -20,6 +20,7 @@ import (
 	"github.com/giantswarm/clustertest/pkg/application"
 	clusterclient "github.com/giantswarm/clustertest/pkg/client"
 	"github.com/giantswarm/clustertest/pkg/logger"
+	"github.com/giantswarm/clustertest/pkg/organization"
 	"github.com/giantswarm/clustertest/pkg/wait"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,6 +44,8 @@ type suite struct {
 	isUpgrade        bool
 	installNamespace string
 
+	isMCTest bool
+
 	inBundleApp  string
 	isDefaultApp bool
 
@@ -53,12 +56,14 @@ type suite struct {
 }
 
 // New create a new suite instance that allows configuring an App test suite
-func New(testConfig config.TestConfig) *suite {
+func New() *suite {
+	testConfig := config.MustLoad()
 	return &suite{
 		appName:          testConfig.AppName,
 		installName:      testConfig.AppName,
 		repoName:         testConfig.RepoName,
 		appCatalog:       testConfig.AppCatalog,
+		isMCTest:         testConfig.IsMCTest,
 		isUpgrade:        false,
 		isDefaultApp:     false,
 		installNamespace: "default",
@@ -146,6 +151,22 @@ func (s *suite) Tests(fn func()) *suite {
 func (s *suite) Run(t *testing.T, suiteName string) {
 	RegisterFailHandler(Fail)
 
+	// Ensure we use an actual semver version instead of "latest"
+	if os.Getenv("E2E_APP_VERSION") == "latest" {
+		latestVersion, err := application.GetLatestAppVersion(s.repoName)
+		if err != nil {
+			panic(err)
+		}
+		latestVersion = strings.TrimPrefix(latestVersion, "v")
+		logger.Log("Overriding 'latest' version to '%s'", latestVersion)
+		os.Setenv("E2E_APP_VERSION", latestVersion)
+
+		defer (func() {
+			// Set the env back to latest so it doesn't conflict with other suites
+			os.Setenv("E2E_APP_VERSION", "latest")
+		})()
+	}
+
 	BeforeSuite(func() {
 		logger.LogWriter = GinkgoWriter
 
@@ -165,12 +186,20 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 		Expect(err).NotTo(HaveOccurred())
 		state.SetFramework(framework)
 
-		cb, err := clusterbuilder.GetClusterBuilderForContext(mcContext)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(cb).NotTo(BeNil())
+		var cluster *application.Cluster
+		if s.isMCTest {
+			cluster = &application.Cluster{
+				Name:         state.GetFramework().MC().GetClusterName(),
+				Organization: organization.New("giantswarm"),
+			}
+		} else {
+			cb, err := clusterbuilder.GetClusterBuilderForContext(mcContext)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(cb).NotTo(BeNil())
 
-		// Load an existing cluster is env vars are set, otherwise create a new cluster
-		cluster := clusterbuilder.LoadOrBuildCluster(state.GetFramework(), cb)
+			// Load an existing cluster is env vars are set, otherwise create a new cluster
+			cluster = clusterbuilder.LoadOrBuildCluster(state.GetFramework(), cb)
+		}
 		Expect(cluster).NotTo(BeNil())
 		state.SetCluster(cluster)
 
@@ -179,7 +208,10 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 		if installName == "" {
 			installName = s.appName
 		}
-		app := application.New(fmt.Sprintf("%s-%s", cluster.Name, installName), s.appName).
+		if !s.isMCTest {
+			installName = fmt.Sprintf("%s-%s", cluster.Name, installName)
+		}
+		app := application.New(installName, s.appName).
 			WithRepoName(s.repoName).
 			WithCatalog(s.appCatalog).
 			WithOrganization(*cluster.Organization).
@@ -190,11 +222,13 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 			WithInCluster(false)
 		state.SetApplication(app)
 
-		s.isDefaultApp, err = cluster.IsDefaultApp(*app)
-		Expect(err).NotTo(HaveOccurred())
-		if s.isDefaultApp && !s.isUpgrade {
-			// If we're not an upgrade suite we install the override default app at creation
-			cluster = cluster.WithAppOverride(*app)
+		if !s.isMCTest {
+			s.isDefaultApp, err = cluster.IsDefaultApp(*app)
+			Expect(err).NotTo(HaveOccurred())
+			if s.isDefaultApp && !s.isUpgrade {
+				// If we're not an upgrade suite we install the override default app at creation
+				cluster = cluster.WithAppOverride(*app)
+			}
 		}
 
 		if s.inBundleApp != "" {
@@ -224,91 +258,104 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 			}
 		}
 
-		// Create new workload cluster
-		logger.Log("Creating new workload cluster")
+		if s.isMCTest {
+			logger.Log("Confirming that we're working with an ephemeral MC for this MC App test suite")
 
-		// We want to make sure the cluster is ready enough for us to install a new App
-		// so we wait for all control plane nodes and at least 2 workers to be ready
-		clusterReadyFns := []func(wcClient *clusterclient.Client){
-			func(wcClient *clusterclient.Client) {
-				replicas, err := state.GetFramework().GetExpectedControlPlaneReplicas(state.GetContext(), state.GetCluster().Name, state.GetCluster().GetNamespace())
-				Expect(err).NotTo(HaveOccurred())
+			logger.Log("MC Name: '%s', Test Cluster Name: '%s'", cleanClusterName(state.GetFramework().MC().GetClusterName()), cleanClusterName(state.GetCluster().Name))
+			Expect(cleanClusterName(state.GetFramework().MC().GetClusterName()) == cleanClusterName(state.GetCluster().Name)).To(BeTrue(), "We're not pointing to the MC cluster but instead trying to use a WC")
 
-				// Only check for control plane if not a managed cluster (e.g. EKS)
-				if replicas != 0 {
-					logger.Log("Waiting for %d control plane nodes to be ready", replicas)
+			isEphemeral := isEphemeralTestMC()
+			logger.Log("MC is ephemeral: '%t'", isEphemeral)
+			Expect(isEphemeral).To(BeTrue(), "The MC being used for testing is not an ephemeral MC. Tests could cause side-effects so we block running on non-ephemeral")
+		} else {
+			// Create new workload cluster
+			logger.Log("Creating new workload cluster")
+
+			// We want to make sure the cluster is ready enough for us to install a new App
+			// so we wait for all control plane nodes and at least 2 workers to be ready
+			clusterReadyFns := []func(wcClient *clusterclient.Client){
+				func(wcClient *clusterclient.Client) {
+					replicas, err := state.GetFramework().GetExpectedControlPlaneReplicas(state.GetContext(), state.GetCluster().Name, state.GetCluster().GetNamespace())
+					Expect(err).NotTo(HaveOccurred())
+
+					// Only check for control plane if not a managed cluster (e.g. EKS)
+					if replicas != 0 {
+						logger.Log("Waiting for %d control plane nodes to be ready", replicas)
+						_ = wait.For(
+							wait.AreNumNodesReady(context.Background(), wcClient, int(replicas), &cr.MatchingLabels{"node-role.kubernetes.io/control-plane": ""}),
+							wait.WithTimeout(20*time.Minute),
+							wait.WithInterval(15*time.Second),
+						)
+					}
+				},
+				func(wcClient *clusterclient.Client) {
+					logger.Log("Waiting for worker nodes to be ready")
 					_ = wait.For(
-						wait.AreNumNodesReady(context.Background(), wcClient, int(replicas), &cr.MatchingLabels{"node-role.kubernetes.io/control-plane": ""}),
+						wait.AreNumNodesReady(context.Background(), wcClient, 2, &cr.MatchingLabels{"node-role.kubernetes.io/worker": ""}),
 						wait.WithTimeout(20*time.Minute),
 						wait.WithInterval(15*time.Second),
 					)
-				}
-			},
-			func(wcClient *clusterclient.Client) {
-				logger.Log("Waiting for worker nodes to be ready")
-				_ = wait.For(
-					wait.AreNumNodesReady(context.Background(), wcClient, 2, &cr.MatchingLabels{"node-role.kubernetes.io/worker": ""}),
-					wait.WithTimeout(20*time.Minute),
-					wait.WithInterval(15*time.Second),
-				)
-			},
-			func(wcClient *clusterclient.Client) {
-				skipDefaultAppsApp, err := state.GetCluster().UsesUnifiedClusterApp()
-				Expect(err).NotTo(HaveOccurred())
+				},
+				func(wcClient *clusterclient.Client) {
+					skipDefaultAppsApp, err := state.GetCluster().UsesUnifiedClusterApp()
+					Expect(err).NotTo(HaveOccurred())
 
-				logger.Log("Waiting for all default apps to be ready")
+					logger.Log("Waiting for all default apps to be ready")
 
-				defaultAppsSelectorLabels := cr.MatchingLabels{
-					"giantswarm.io/cluster":        state.GetCluster().Name,
-					"app.kubernetes.io/managed-by": "Helm",
-				}
-
-				if !skipDefaultAppsApp {
-					defaultAppsAppName := fmt.Sprintf("%s-%s", state.GetCluster().Name, "default-apps")
-
-					Eventually(wait.IsAppDeployed(state.GetContext(), state.GetFramework().MC(), defaultAppsAppName, state.GetCluster().Organization.GetNamespace())).
-						WithTimeout(30 * time.Second).
-						WithPolling(50 * time.Millisecond).
-						Should(BeTrue())
-
-					defaultAppsSelectorLabels = cr.MatchingLabels{
-						"giantswarm.io/managed-by": defaultAppsAppName,
+					defaultAppsSelectorLabels := cr.MatchingLabels{
+						"giantswarm.io/cluster":        state.GetCluster().Name,
+						"app.kubernetes.io/managed-by": "Helm",
 					}
-				}
 
-				// Wait for all default-apps apps to be deployed
-				appList := &v1alpha1.AppList{}
-				err = state.GetFramework().MC().List(state.GetContext(), appList, cr.InNamespace(state.GetCluster().Organization.GetNamespace()), defaultAppsSelectorLabels)
-				Expect(err).NotTo(HaveOccurred())
+					if !skipDefaultAppsApp {
+						defaultAppsAppName := fmt.Sprintf("%s-%s", state.GetCluster().Name, "default-apps")
 
-				appNamespacedNames := []types.NamespacedName{}
-				for _, app := range appList.Items {
-					appNamespacedNames = append(appNamespacedNames, types.NamespacedName{Name: app.Name, Namespace: app.Namespace})
-				}
+						Eventually(wait.IsAppDeployed(state.GetContext(), state.GetFramework().MC(), defaultAppsAppName, state.GetCluster().Organization.GetNamespace())).
+							WithTimeout(30 * time.Second).
+							WithPolling(50 * time.Millisecond).
+							Should(BeTrue())
 
-				Eventually(wait.IsAllAppDeployed(state.GetContext(), state.GetFramework().MC(), appNamespacedNames)).
-					WithTimeout(15 * time.Minute).
-					WithPolling(10 * time.Second).
-					Should(BeTrue())
-			},
+						defaultAppsSelectorLabels = cr.MatchingLabels{
+							"giantswarm.io/managed-by": defaultAppsAppName,
+						}
+					}
+
+					// Wait for all default-apps apps to be deployed
+					appList := &v1alpha1.AppList{}
+					err = state.GetFramework().MC().List(state.GetContext(), appList, cr.InNamespace(state.GetCluster().Organization.GetNamespace()), defaultAppsSelectorLabels)
+					Expect(err).NotTo(HaveOccurred())
+
+					appNamespacedNames := []types.NamespacedName{}
+					for _, app := range appList.Items {
+						appNamespacedNames = append(appNamespacedNames, types.NamespacedName{Name: app.Name, Namespace: app.Namespace})
+					}
+
+					Eventually(wait.IsAllAppDeployed(state.GetContext(), state.GetFramework().MC(), appNamespacedNames)).
+						WithTimeout(15 * time.Minute).
+						WithPolling(10 * time.Second).
+						Should(BeTrue())
+				},
+			}
+
+			cluster, err = standup.New(state.GetFramework(), false, clusterReadyFns...).Standup(cluster)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(cluster).NotTo(BeNil())
+			state.SetCluster(cluster)
+
+			logger.Log("Workload cluster ready to use")
 		}
-
-		cluster, err = standup.New(state.GetFramework(), false, clusterReadyFns...).Standup(cluster)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(cluster).NotTo(BeNil())
-		state.SetCluster(cluster)
-
-		logger.Log("Workload cluster ready to use")
 	})
 
 	AfterSuite(func() {
 		defer func() {
-			By("Deleting workload cluster", func() {
-				// We defer this to ensure it happens even if uninstalling the app fails
-				logger.Log("Deleting workload cluster")
-				err := teardown.New(state.GetFramework()).Teardown(state.GetCluster())
-				Expect(err).NotTo(HaveOccurred())
-			})
+			if !s.isMCTest {
+				By("Deleting workload cluster", func() {
+					// We defer this to ensure it happens even if uninstalling the app fails
+					logger.Log("Deleting workload cluster")
+					err := teardown.New(state.GetFramework()).Teardown(state.GetCluster())
+					Expect(err).NotTo(HaveOccurred())
+				})
+			}
 		}()
 
 		if s.afterSuite != nil {
@@ -435,4 +482,15 @@ func getInstallApp() *application.Application {
 		return bundleApp
 	}
 	return state.GetApplication()
+}
+
+func isEphemeralTestMC() bool {
+	values := &application.ClusterValues{}
+	err := state.GetFramework().MC().GetHelmValues(cleanClusterName(state.GetFramework().MC().GetClusterName()), "org-giantswarm", values)
+	Expect(err).NotTo(HaveOccurred())
+	return strings.Contains(values.BaseDomain, "ephemeral")
+}
+
+func cleanClusterName(clusterName string) string {
+	return strings.TrimPrefix(clusterName, "teleport.giantswarm.io-")
 }

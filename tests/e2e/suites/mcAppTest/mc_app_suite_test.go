@@ -1,4 +1,4 @@
-package defaultapp
+package basic
 
 import (
 	"testing"
@@ -19,8 +19,8 @@ const (
 	isUpgrade = false
 )
 
-func TestDefaultApp(t *testing.T) {
-	installNamespace := "kube-system"
+func TestMCApp(t *testing.T) {
+	installNamespace := "default"
 
 	suite.New().
 		WithInstallNamespace(installNamespace).
@@ -76,5 +76,5 @@ func TestDefaultApp(t *testing.T) {
 			logger.Log("Cleaning up after tests have completed")
 
 		}).
-		Run(t, "Default App Test")
+		Run(t, "MC App Test")
 }
