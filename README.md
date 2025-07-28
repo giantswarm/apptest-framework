@@ -89,6 +89,14 @@ If you want to trigger the test suites against only a single provider (rather th
 /run app-test-suites-single PROVIDER=capa
 ```
 
+If you want to run specific test suites rather than all you can specify them as follows:
+
+```
+/run app-test-suites-single PROVIDER=capa TARGET_SUITES=basic,defaultapp
+```
+
+The `TARGET_SUITES` argument supports a comma separated list of test suite names that match the directory name under `./test/e2e/suites/`.
+
 ## Running Tests Locally
 
 > [!NOTE]
