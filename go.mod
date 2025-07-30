@@ -4,8 +4,8 @@ go 1.24.2
 
 require (
 	github.com/giantswarm/apiextensions-application v0.6.2
-	github.com/giantswarm/cluster-standup-teardown v1.33.3
-	github.com/giantswarm/clustertest v1.37.0
+	github.com/giantswarm/cluster-standup-teardown v1.34.0
+	github.com/giantswarm/clustertest v1.38.0
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.38.0
 	golang.org/x/text v0.27.0
@@ -26,7 +26,7 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
-	github.com/cenkalti/backoff/v5 v5.0.2 // indirect
+	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cert-manager/cert-manager v1.18.2 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/chai2010/gettext-go v1.0.3 // indirect
@@ -67,7 +67,7 @@ require (
 	github.com/google/gnostic-models v0.6.9 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/go-github/v66 v66.0.0 // indirect
-	github.com/google/go-github/v73 v73.0.0 // indirect
+	github.com/google/go-github/v74 v74.0.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/pprof v0.0.0-20250423184734-337e5dd93bb4 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
@@ -125,8 +125,6 @@ require (
 	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
 	github.com/xlab/treeprint v1.2.0 // indirect
 	go.opentelemetry.io/otel v1.35.0 // indirect
-	go.opentelemetry.io/otel/sdk v1.35.0 // indirect
-	go.opentelemetry.io/otel/sdk/metric v1.35.0 // indirect
 	go.opentelemetry.io/otel/trace v1.35.0 // indirect
 	go.uber.org/automaxprocs v1.6.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
@@ -149,19 +147,19 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	helm.sh/helm/v3 v3.18.4 // indirect
-	k8s.io/api v0.33.2 // indirect
+	k8s.io/api v0.33.3 // indirect
 	k8s.io/apiextensions-apiserver v0.33.2 // indirect
 	k8s.io/apiserver v0.33.2 // indirect
-	k8s.io/cli-runtime v0.33.2 // indirect
-	k8s.io/client-go v0.33.2 // indirect
+	k8s.io/cli-runtime v0.33.3 // indirect
+	k8s.io/client-go v0.33.3 // indirect
 	k8s.io/cluster-bootstrap v0.33.0 // indirect
-	k8s.io/component-base v0.33.2 // indirect
+	k8s.io/component-base v0.33.3 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff // indirect
-	k8s.io/kubectl v0.33.2 // indirect
+	k8s.io/kubectl v0.33.3 // indirect
 	k8s.io/utils v0.0.0-20250321185631-1f6e0b77f77e // indirect
 	oras.land/oras-go/v2 v2.6.0 // indirect
-	sigs.k8s.io/cluster-api v1.10.3 // indirect
+	sigs.k8s.io/cluster-api v1.10.4 // indirect
 	sigs.k8s.io/e2e-framework v0.6.0 // indirect
 	sigs.k8s.io/gateway-api v1.3.0 // indirect
 	sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 // indirect
