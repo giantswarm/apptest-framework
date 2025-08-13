@@ -47,7 +47,7 @@ require (
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
 	github.com/giantswarm/apiextensions-application v0.6.2 // indirect
-	github.com/giantswarm/cluster-standup-teardown v1.34.2 // indirect
+	github.com/giantswarm/cluster-standup-teardown v1.35.0 // indirect
 	github.com/giantswarm/k8smetadata v0.25.0 // indirect
 	github.com/giantswarm/kubectl-gs/v2 v2.57.0 // indirect
 	github.com/giantswarm/microerror v0.4.1 // indirect
@@ -142,7 +142,7 @@ require (
 	golang.org/x/time v0.12.0 // indirect
 	golang.org/x/tools v0.36.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.5.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250804133106-a7a43d27e69b // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250811230008-5f3141c8851a // indirect
 	google.golang.org/grpc v1.74.2 // indirect
 	google.golang.org/protobuf v1.36.7 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
