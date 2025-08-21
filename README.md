@@ -7,7 +7,8 @@ A test framework for helping with E2E testing of Giant Swarm managed Apps within
 ## Features
 
 - Handles test suite setup (using Ginkgo)
-- Handles workload cluster creation and deletion
+- Supports both Management Cluster and Workload Cluster App testing
+- Handles workload cluster creation and deletion for workload cluster testing
 - Provides shared state across test cases
 - Provides hooks for pre-install, pre-upgrade and post-install steps
 
@@ -16,7 +17,7 @@ A test framework for helping with E2E testing of Giant Swarm managed Apps within
 > [!NOTE]
 > The following information is specific to Giant Swarm repos
 
-To ease the setup and bootstrapping of apptests there are two `devctl` commands that setup everything for you.
+To ease the setup and bootstrapping of app tests there are two `devctl` commands that setup everything for you.
 
 First, your App repo needs to have the webhooks configured to send to our CI/CD cluster so we can trigger runs from PRs:
 
@@ -42,6 +43,7 @@ Once done your repo should now contain the following:
 ├── 📂 suites
 │  └── 📂 basic
 │     ├── 📄 basic_suite_test.go
+│     ├── 📄 config.yaml (optional)
 │     └── 📄 values.yaml
 ├── 📄 config.yaml
 ├── 📄 go.mod
@@ -54,7 +56,7 @@ You can now add your test cases and additional test suites if needed.
 
 ## Config.yaml
 
-This framework relies on a `./tests/e2e/config.yaml` file to be present in the repo. This config contains the following properties that can be set based on what is needed by the App.
+This framework relies on a `./tests/e2e/config.yaml` file to be present in the repo, or a `config.yaml` within the specific test suite directory. This config contains the following properties that can be set based on what is needed by the App.
 
 | property | type | description |
 | --- | --- | --- |
@@ -62,6 +64,7 @@ This framework relies on a `./tests/e2e/config.yaml` file to be present in the r
 | `repoName` | string | The name of the repository |
 | `appCatalog` | string | The (non-test) catalog that the App is published into |
 | `providers` | string array | A list of CAPI providers to test against when triggering from a PR (default if unset `capa`) |
+| `isMCTest` | boolean | If the test suite should be run against an MC instead of a WC (default: `false`) |
 
 Example:
 ```yaml
@@ -71,7 +74,10 @@ appCatalog: giantswarm
 providers:
 - capa
 - capv
+isMCTest: false
 ```
+
+See [WRITING_TESTS.md](./docs/WRITING_TESTS.md#test-config) for more details.
 
 ## Running Tests Against a PR
 
@@ -92,10 +98,22 @@ If you want to trigger the test suites against only a single provider (rather th
 If you want to run specific test suites rather than all you can specify them as follows:
 
 ```
-/run app-test-suites-single PROVIDER=capa TARGET_SUITES=basic,defaultapp
+/run app-test-suites-single PROVIDER=capa TARGET_SUITES=basic,defaultapp,mcAppTest
 ```
 
-The `TARGET_SUITES` argument supports a comma separated list of test suite names that match the directory name under `./test/e2e/suites/`.
+The `TARGET_SUITES` argument supports a comma separated list of test suite names that match the directory name under `./test/e2e/suites/`. This list can be made up of both workload cluster and management cluster test suites and the Pipeline will split them up as needed.
+
+### A Note on Management Cluster Tests
+
+Testing of Apps within a Management Cluster is possible by setting the `isMCTest` property to `true` in the test suites `config.yaml`. The CI Pipeline will then generate a new Ephemeral MC for each test MC test suites and run the tests against that new MC before tearing it down again at the end.
+
+**NOTE:** This comes with some caveats that you need to be aware of:
+
+- The Ephemeral MCs are created and destroyed as part of the test suite and as such can add up to 1 hour of extra run time on top of the time it takes to run the tests.
+- Creation of the Ephemeral MC relies on [mc-bootstrap](https://github.com/giantswarm/mc-bootstrap) which is, unfortunately, sometimes flakey and can fail to create the MC leading to the Pipeline being marked as a failure.
+- There is a limited number of Ephemeral MCs available to test against as these need to be manually configured ahead of time. At time of writing we currently have 10 CAPA MCs that can be used but no other providers right now.
+- There is a nightly CronJob that runs to attempt to clean up any leftover MCs that might not have been correctly removed at the end of Pipelines.
+- If your tests _also_ require a Workload Cluster as part of the test suite you will need to create and manage this yourself as part of the test suite. The `AfterClusterReady` hook may be a sensible place to take care of this. In the future this will likely be extracted into helper functions to make it easier.
 
 ## Running Tests Locally
 

@@ -146,9 +146,6 @@ If the bundle App is also a default app please make sure to also read the [Testi
 
 ## Testing Default Apps
 
-> [!NOTE]
-> Testing of default apps is only supported with providers that have been updated to make use of Releases.
-
 Nothing special needs to be done to a test suite to make it compatible with a default app, instead the framework will detect at runtime if the app being tested is a default App or not by checking it against the Release spec for that provider.
 
 One thing to be aware of when testing default apps is it's not possible to perform any actions before the installation of the App as it is done as part of the cluster creation.
@@ -157,6 +154,14 @@ If testing an app within a bundle App that is a default App, the framework will 
 
 > [!TIP]
 > Example: [tests/e2e/suites/defaultapp](https://github.com/giantswarm/apptest-framework/blob/534f57426d183921e042e09cf6694ac2756d3862/tests/e2e/suites/defaultapp/defaultapp_suite_test.go)
+
+## Testing Apps on Management Clusters
+
+Aside from setting `isMCTest: true` in the config.yaml for your test suite (See [Test Config](#test-config) above) there is nothing else special needed when writing tests for management clusters.
+The only other thing to be aware of is that the tests MUST be performed against an Ephemeral MC and will fail if attempted to run against any other (to protect that MC).
+
+> [!TIP]
+> Example: [tests/e2e/suites/mcAppTest](https://github.com/giantswarm/apptest-framework/blob/0d6ce8d985465957a3167f234448326149c12b3f/tests/e2e/suites/mcAppTest/mc_app_suite_test.go)
 
 ## Related Resources
 
