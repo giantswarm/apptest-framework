@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.15.1] - 2025-08-21
+
 ### Fixed
 
 - Added retry logic when checking if MC is ephemeral or not
@@ -235,7 +237,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Config package to provide standard app configuration
 - Client package to abstract some test functionality
 
-[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v1.15.0...HEAD
+[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v1.15.1...HEAD
+[1.15.1]: https://github.com/giantswarm/apptest-framework/compare/v1.15.0...v1.15.1
 [1.15.0]: https://github.com/giantswarm/apptest-framework/compare/v1.14.1...v1.15.0
 [1.14.1]: https://github.com/giantswarm/apptest-framework/compare/v1.14.0...v1.14.1
 [1.14.0]: https://github.com/giantswarm/apptest-framework/compare/v1.13.0...v1.14.0
