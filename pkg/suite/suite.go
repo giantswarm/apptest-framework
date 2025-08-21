@@ -486,8 +486,16 @@ func getInstallApp() *application.Application {
 
 func isEphemeralTestMC() bool {
 	values := &application.ClusterValues{}
-	err := state.GetFramework().MC().GetHelmValues(cleanClusterName(state.GetFramework().MC().GetClusterName()), "org-giantswarm", values)
-	Expect(err).NotTo(HaveOccurred())
+
+	// It's possible that we connect to an MC while it is still being set up and not quite ready yet.
+	// If we get an error while trying to get the Cluster values we'll retry for up to 2 minutes
+	Eventually(func() error {
+		return state.GetFramework().MC().GetHelmValues(cleanClusterName(state.GetFramework().MC().GetClusterName()), "org-giantswarm", values)
+	}).
+		WithTimeout(2 * time.Minute).
+		WithPolling(5 * time.Second).
+		Should(BeNil())
+
 	return strings.Contains(values.BaseDomain, "ephemeral")
 }
 
