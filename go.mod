@@ -7,7 +7,7 @@ require (
 	github.com/giantswarm/cluster-standup-teardown v1.35.2
 	github.com/giantswarm/clustertest v1.39.2
 	github.com/onsi/ginkgo/v2 v2.25.1
-	github.com/onsi/gomega v1.38.1
+	github.com/onsi/gomega v1.38.2
 	golang.org/x/text v0.28.0
 	k8s.io/apimachinery v0.33.4
 	sigs.k8s.io/controller-runtime v0.21.0
