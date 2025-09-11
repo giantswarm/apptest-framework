@@ -291,7 +291,7 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 				func(wcClient *clusterclient.Client) {
 					logger.Log("Waiting for worker nodes to be ready")
 					_ = wait.For(
-						wait.AreNumNodesReady(context.Background(), wcClient, 2, &cr.MatchingLabels{"node-role.kubernetes.io/worker": ""}),
+						wait.AreNumNodesReady(context.Background(), wcClient, 2, clusterclient.DoesNotHaveLabels{"node-role.kubernetes.io/control-plane"}),
 						wait.WithTimeout(20*time.Minute),
 						wait.WithInterval(15*time.Second),
 					)

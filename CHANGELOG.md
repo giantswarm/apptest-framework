@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Don't rely on workers having labels. Instead, filter by nodes not having the control plane label.
+
 ## [1.15.3] - 2025-08-28
 
 ### Changed
