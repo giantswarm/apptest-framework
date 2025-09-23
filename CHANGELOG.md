@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.16.0] - 2025-09-23
+
 ### Changed
 
 - Don't rely on workers having labels. Instead, filter by nodes not having the control plane label.
@@ -253,7 +255,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Config package to provide standard app configuration
 - Client package to abstract some test functionality
 
-[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v1.15.3...HEAD
+[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v1.16.0...HEAD
+[1.16.0]: https://github.com/giantswarm/apptest-framework/compare/v1.15.3...v1.16.0
 [1.15.3]: https://github.com/giantswarm/apptest-framework/compare/v1.15.2...v1.15.3
 [1.15.2]: https://github.com/giantswarm/apptest-framework/compare/v1.15.1...v1.15.2
 [1.15.1]: https://github.com/giantswarm/apptest-framework/compare/v1.15.0...v1.15.1
