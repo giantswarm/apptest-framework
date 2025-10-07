@@ -10,7 +10,7 @@ require (
 	github.com/onsi/gomega v1.38.2
 	golang.org/x/text v0.29.0
 	k8s.io/apimachinery v0.34.1
-	sigs.k8s.io/controller-runtime v0.22.1
+	sigs.k8s.io/controller-runtime v0.22.2
 	sigs.k8s.io/yaml v1.6.0
 )
 
@@ -147,8 +147,8 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	helm.sh/helm/v3 v3.18.6 // indirect
 	k8s.io/api v0.34.1 // indirect
-	k8s.io/apiextensions-apiserver v0.34.0 // indirect
-	k8s.io/apiserver v0.34.0 // indirect
+	k8s.io/apiextensions-apiserver v0.34.1 // indirect
+	k8s.io/apiserver v0.34.1 // indirect
 	k8s.io/cli-runtime v0.34.1 // indirect
 	k8s.io/client-go v0.34.1 // indirect
 	k8s.io/cluster-bootstrap v0.34.0 // indirect
