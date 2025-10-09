@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/giantswarm/clustertest/pkg/application"
-	"github.com/giantswarm/clustertest/pkg/logger"
-	"github.com/giantswarm/clustertest/pkg/wait"
+	"github.com/giantswarm/clustertest/v2/pkg/application"
+	"github.com/giantswarm/clustertest/v2/pkg/logger"
+	"github.com/giantswarm/clustertest/v2/pkg/wait"
 
 	"github.com/giantswarm/apptest-framework/pkg/state"
 
