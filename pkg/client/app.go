@@ -8,7 +8,7 @@ import (
 	"github.com/giantswarm/clustertest/v2/pkg/logger"
 	"github.com/giantswarm/clustertest/v2/pkg/wait"
 
-	"github.com/giantswarm/apptest-framework/pkg/state"
+	"github.com/giantswarm/apptest-framework/v2/pkg/state"
 
 	. "github.com/onsi/ginkgo/v2" //nolint:staticcheck
 	. "github.com/onsi/gomega"    //nolint:staticcheck
