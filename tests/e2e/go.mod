@@ -7,7 +7,7 @@ replace github.com/giantswarm/apptest-framework => ../../
 
 require (
 	github.com/giantswarm/apptest-framework/v2 v2.0.1
-	github.com/giantswarm/clustertest/v2 v2.0.3
+	github.com/giantswarm/clustertest/v2 v2.1.1
 	github.com/onsi/ginkgo/v2 v2.26.0
 	github.com/onsi/gomega v1.38.2
 	k8s.io/api v0.34.1
@@ -27,7 +27,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
-	github.com/cert-manager/cert-manager v1.19.0 // indirect
+	github.com/cert-manager/cert-manager v1.19.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/chai2010/gettext-go v1.0.3 // indirect
 	github.com/clipperhouse/uax29/v2 v2.2.0 // indirect
@@ -54,7 +54,7 @@ require (
 	github.com/giantswarm/microerror v0.4.1 // indirect
 	github.com/giantswarm/organization-operator v1.6.4 // indirect
 	github.com/giantswarm/release-operator/v4 v4.2.1 // indirect
-	github.com/giantswarm/releases/sdk v0.10.0 // indirect
+	github.com/giantswarm/releases/sdk v0.11.0 // indirect
 	github.com/go-errors/errors v1.5.1 // indirect
 	github.com/go-gorp/gorp/v3 v3.1.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
@@ -80,8 +80,7 @@ require (
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/gnostic-models v0.7.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/google/go-github/v66 v66.0.0 // indirect
-	github.com/google/go-github/v75 v75.0.0 // indirect
+	github.com/google/go-github/v76 v76.0.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/pprof v0.0.0-20251007162407-5df77e3f7d1d // indirect
 	github.com/google/uuid v1.6.0 // indirect
@@ -170,7 +169,7 @@ require (
 	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4 // indirect
 	oras.land/oras-go/v2 v2.6.0 // indirect
 	sigs.k8s.io/cluster-api v1.10.6 // indirect
-	sigs.k8s.io/controller-runtime v0.22.2 // indirect
+	sigs.k8s.io/controller-runtime v0.22.3 // indirect
 	sigs.k8s.io/e2e-framework v0.6.0 // indirect
 	sigs.k8s.io/gateway-api v1.4.0 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
