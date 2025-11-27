@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.1] - 2025-11-27
+
 ### Changed
 
 - Go: Update dependencies.
@@ -289,7 +291,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Config package to provide standard app configuration
 - Client package to abstract some test functionality
 
-[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v2.1.1...HEAD
+[2.1.1]: https://github.com/giantswarm/apptest-framework/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/giantswarm/apptest-framework/compare/v2.0.2...v2.1.0
 [2.0.2]: https://github.com/giantswarm/apptest-framework/compare/v2.0.1...v2.0.2
 [2.0.1]: https://github.com/giantswarm/apptest-framework/compare/v2.0.0...v2.0.1
