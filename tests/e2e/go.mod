@@ -6,7 +6,7 @@ go 1.25.5
 replace github.com/giantswarm/apptest-framework => ../../
 
 require (
-	github.com/giantswarm/apptest-framework/v2 v2.1.2
+	github.com/giantswarm/apptest-framework/v2 v2.1.3
 	github.com/giantswarm/clustertest/v2 v2.2.2
 	github.com/onsi/ginkgo/v2 v2.27.3
 	github.com/onsi/gomega v1.38.3
@@ -135,7 +135,6 @@ require (
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xlab/treeprint v1.2.0 // indirect
 	go.opentelemetry.io/otel v1.39.0 // indirect
-	go.opentelemetry.io/otel/sdk/metric v1.39.0 // indirect
 	go.opentelemetry.io/otel/trace v1.39.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.1 // indirect
