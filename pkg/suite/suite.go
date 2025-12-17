@@ -46,8 +46,9 @@ type suite struct {
 
 	isMCTest bool
 
-	inBundleApp  string
-	isDefaultApp bool
+	inBundleApp             string
+	inBundleAppOverrideType bundles.AppNameOverrideType
+	isDefaultApp            bool
 
 	afterClusterReady func()
 	beforeUpgrade     func()
@@ -59,16 +60,17 @@ type suite struct {
 func New() *suite {
 	testConfig := config.MustLoad()
 	return &suite{
-		appName:          testConfig.AppName,
-		installName:      testConfig.AppName,
-		repoName:         testConfig.RepoName,
-		appCatalog:       testConfig.AppCatalog,
-		isMCTest:         testConfig.IsMCTest,
-		isUpgrade:        false,
-		isDefaultApp:     false,
-		installNamespace: "default",
-		valuesFile:       "./values.yaml",
-		inBundleApp:      "",
+		appName:                 testConfig.AppName,
+		installName:             testConfig.AppName,
+		repoName:                testConfig.RepoName,
+		appCatalog:              testConfig.AppCatalog,
+		isMCTest:                testConfig.IsMCTest,
+		isUpgrade:               false,
+		isDefaultApp:            false,
+		installNamespace:        "default",
+		valuesFile:              "./values.yaml",
+		inBundleApp:             "",
+		inBundleAppOverrideType: bundles.AppNameOverrideAuto,
 	}
 }
 
@@ -107,6 +109,13 @@ func (s *suite) WithValuesFile(valuesFile string) *suite {
 // appropriate chart values
 func (s *suite) InAppBundle(appBundleName string) *suite {
 	s.inBundleApp = strings.ToLower(appBundleName)
+	return s
+}
+
+// WithBundleOverrideType sets the naming convention for the child app in the bundle values.
+// If not set, it defaults to AppNameOverrideAuto which auto-detects based on the bundle app name.
+func (s *suite) WithBundleOverrideType(overrideType bundles.AppNameOverrideType) *suite {
+	s.inBundleAppOverrideType = overrideType
 	return s
 }
 
@@ -246,7 +255,7 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 				WithInCluster(true)
 
 			// Replace app with bundle app that has version of child App set
-			bundleApp, err = bundles.OverrideChildApp(bundleApp, app)
+			bundleApp, err = bundles.OverrideChildApp(bundleApp, app, s.inBundleAppOverrideType)
 			Expect(err).NotTo(HaveOccurred())
 			state.SetBundleApplication(bundleApp)
 

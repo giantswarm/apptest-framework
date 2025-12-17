@@ -11,19 +11,44 @@ import (
 	yaml "sigs.k8s.io/yaml/goyaml.v2"
 )
 
+// AppNameOverrideType specifies how the child app name should be formatted in bundle values
+type AppNameOverrideType int
+
+const (
+	// AppNameOverrideAuto automatically detects the naming convention based on the bundle app name
+	AppNameOverrideAuto AppNameOverrideType = iota
+	// AppNameOverrideCamelCase converts the app name to camelCase (e.g., "my-app" -> "myApp")
+	AppNameOverrideCamelCase
+	// AppNameOverrideHyphen keeps the app name with hyphens (e.g., "my-app" stays "my-app")
+	AppNameOverrideHyphen
+	// AppNameOverrideNone skips setting any override values, returning the bundle app unchanged
+	AppNameOverrideNone
+)
+
 // OverrideChildApp takes two apps, a bundle app and a child app, and attempts to correctly set the values of the bundle app
 // to have it install the desired version of the child app.
-func OverrideChildApp(bundleApp *application.Application, childApp *application.Application) (*application.Application, error) {
+// The overrideType specifies the naming convention for the child app.
+// If set to AppNameOverrideAuto, it will attempt to auto-detect based on the bundle app name.
+func OverrideChildApp(bundleApp *application.Application, childApp *application.Application, overrideType AppNameOverrideType) (*application.Application, error) {
 	appName := childApp.AppName
 
-	if isCamelCaseName(bundleApp.AppName) {
-		// Convert the app name to be camel case rather than hyphened
-		appName = strings.ReplaceAll(appName, "-", " ")
-		appName = cases.Title(language.English).String(appName)
-		appName = strings.ReplaceAll(appName, " ", "")
-		appName = strings.ToLower(appName[:1]) + appName[1:]
-	} else if !isHyphenName(bundleApp.AppName) {
-		return nil, fmt.Errorf("provided bundle is unsupported, child version override format is unknown")
+	switch overrideType {
+	case AppNameOverrideNone:
+		// No override values, return bundle app unchanged
+		return bundleApp, nil
+	case AppNameOverrideCamelCase:
+		appName = toCamelCase(appName)
+	case AppNameOverrideHyphen:
+		// Keep as-is (hyphenated)
+	case AppNameOverrideAuto:
+		fallthrough
+	default:
+		// Auto-detect based on bundle app name
+		if isCamelCaseName(bundleApp.AppName) {
+			appName = toCamelCase(appName)
+		} else if !isHyphenName(bundleApp.AppName) {
+			return nil, fmt.Errorf("provided bundle is unsupported, child version override format is unknown")
+		}
 	}
 
 	overrideValues := bundleValues{
@@ -50,6 +75,14 @@ func OverrideChildApp(bundleApp *application.Application, childApp *application.
 	}
 
 	return bundleApp.WithValues(finalValues, &application.TemplateValues{})
+}
+
+// toCamelCase converts a hyphenated app name to camelCase
+func toCamelCase(appName string) string {
+	appName = strings.ReplaceAll(appName, "-", " ")
+	appName = cases.Title(language.English).String(appName)
+	appName = strings.ReplaceAll(appName, " ", "")
+	return strings.ToLower(appName[:1]) + appName[1:]
 }
 
 func isCamelCaseName(appName string) bool {
