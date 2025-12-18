@@ -43,6 +43,7 @@ type suite struct {
 	valuesFile       string
 	isUpgrade        bool
 	installNamespace string
+	inCluster        bool
 
 	isMCTest bool
 
@@ -71,6 +72,7 @@ func New() *suite {
 		valuesFile:              "./values.yaml",
 		inBundleApp:             "",
 		inBundleAppOverrideType: bundles.AppNameOverrideAuto,
+		inCluster:               false,
 	}
 }
 
@@ -94,6 +96,13 @@ func (s *suite) WithInstallNamespace(namespace string) *suite {
 // If not set this defaults to the `appName` value.
 func (s *suite) WithInstallName(name string) *suite {
 	s.installName = name
+	return s
+}
+
+// WithInCluster sets if the App should be installed in the cluster.
+// If not set this defaults to `false`.
+func (s *suite) WithInCluster(inCluster bool) *suite {
+	s.inCluster = inCluster
 	return s
 }
 
@@ -228,7 +237,7 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 			WithVersion(appVersion).
 			WithInstallNamespace(s.installNamespace).
 			MustWithValuesFile(s.valuesFile, &application.TemplateValues{}).
-			WithInCluster(false)
+			WithInCluster(s.inCluster)
 		state.SetApplication(app)
 
 		if !s.isMCTest {
