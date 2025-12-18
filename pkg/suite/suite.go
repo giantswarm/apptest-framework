@@ -93,7 +93,7 @@ func (s *suite) WithInstallNamespace(namespace string) *suite {
 }
 
 // WithInstallName sets the name to install the App as (prefixed with the cluster name).
-// If not set this defaults to the `appName` value.
+// If not set this defaults to the `appName` or `appBundleName` value.
 func (s *suite) WithInstallName(name string) *suite {
 	s.installName = name
 	return s
@@ -224,7 +224,11 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 		// Create app
 		installName := s.installName
 		if installName == "" {
-			installName = s.appName
+			if s.inBundleApp != "" {
+				installName = s.inBundleApp
+			} else {
+				installName = s.appName
+			}
 		}
 		if !s.isMCTest {
 			installName = fmt.Sprintf("%s-%s", cluster.Name, installName)
@@ -254,7 +258,7 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 			Expect(err).ToNot(HaveOccurred())
 			bundleVersion = strings.TrimPrefix(bundleVersion, "v")
 
-			bundleApp := application.New(fmt.Sprintf("%s-%s", cluster.Name, s.inBundleApp), s.inBundleApp).
+			bundleApp := application.New(installName, s.inBundleApp).
 				WithCatalog(s.appCatalog).
 				WithOrganization(*cluster.Organization).
 				WithClusterName(cluster.Name).
