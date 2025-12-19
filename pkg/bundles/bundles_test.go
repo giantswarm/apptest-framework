@@ -73,7 +73,7 @@ func TestOverrideChildApp(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := OverrideChildApp(tc.bundleApp, tc.childApp)
+			result, err := OverrideChildApp(tc.bundleApp, tc.childApp, AppNameOverrideAuto)
 
 			if err != nil && !tc.expectsError {
 				t.Fatalf("unexpected error: %v", err)

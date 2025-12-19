@@ -43,11 +43,13 @@ type suite struct {
 	valuesFile       string
 	isUpgrade        bool
 	installNamespace string
+	inCluster        bool
 
 	isMCTest bool
 
-	inBundleApp  string
-	isDefaultApp bool
+	inBundleApp             string
+	inBundleAppOverrideType bundles.AppNameOverrideType
+	isDefaultApp            bool
 
 	afterClusterReady func()
 	beforeUpgrade     func()
@@ -59,16 +61,18 @@ type suite struct {
 func New() *suite {
 	testConfig := config.MustLoad()
 	return &suite{
-		appName:          testConfig.AppName,
-		installName:      testConfig.AppName,
-		repoName:         testConfig.RepoName,
-		appCatalog:       testConfig.AppCatalog,
-		isMCTest:         testConfig.IsMCTest,
-		isUpgrade:        false,
-		isDefaultApp:     false,
-		installNamespace: "default",
-		valuesFile:       "./values.yaml",
-		inBundleApp:      "",
+		appName:                 testConfig.AppName,
+		installName:             testConfig.AppName,
+		repoName:                testConfig.RepoName,
+		appCatalog:              testConfig.AppCatalog,
+		isMCTest:                testConfig.IsMCTest,
+		isUpgrade:               false,
+		isDefaultApp:            false,
+		installNamespace:        "default",
+		valuesFile:              "./values.yaml",
+		inBundleApp:             "",
+		inBundleAppOverrideType: bundles.AppNameOverrideAuto,
+		inCluster:               false,
 	}
 }
 
@@ -89,9 +93,16 @@ func (s *suite) WithInstallNamespace(namespace string) *suite {
 }
 
 // WithInstallName sets the name to install the App as (prefixed with the cluster name).
-// If not set this defaults to the `appName` value.
+// If not set this defaults to the `appName` or `appBundleName` value.
 func (s *suite) WithInstallName(name string) *suite {
 	s.installName = name
+	return s
+}
+
+// WithInCluster sets if the App should be installed in the cluster.
+// If not set this defaults to `false`.
+func (s *suite) WithInCluster(inCluster bool) *suite {
+	s.inCluster = inCluster
 	return s
 }
 
@@ -107,6 +118,13 @@ func (s *suite) WithValuesFile(valuesFile string) *suite {
 // appropriate chart values
 func (s *suite) InAppBundle(appBundleName string) *suite {
 	s.inBundleApp = strings.ToLower(appBundleName)
+	return s
+}
+
+// WithBundleOverrideType sets the naming convention for the child app in the bundle values.
+// If not set, it defaults to AppNameOverrideAuto which auto-detects based on the bundle app name.
+func (s *suite) WithBundleOverrideType(overrideType bundles.AppNameOverrideType) *suite {
+	s.inBundleAppOverrideType = overrideType
 	return s
 }
 
@@ -206,7 +224,11 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 		// Create app
 		installName := s.installName
 		if installName == "" {
-			installName = s.appName
+			if s.inBundleApp != "" {
+				installName = s.inBundleApp
+			} else {
+				installName = s.appName
+			}
 		}
 		if !s.isMCTest {
 			installName = fmt.Sprintf("%s-%s", cluster.Name, installName)
@@ -219,7 +241,7 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 			WithVersion(appVersion).
 			WithInstallNamespace(s.installNamespace).
 			MustWithValuesFile(s.valuesFile, &application.TemplateValues{}).
-			WithInCluster(false)
+			WithInCluster(s.inCluster)
 		state.SetApplication(app)
 
 		if !s.isMCTest {
@@ -236,7 +258,7 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 			Expect(err).ToNot(HaveOccurred())
 			bundleVersion = strings.TrimPrefix(bundleVersion, "v")
 
-			bundleApp := application.New(fmt.Sprintf("%s-%s", cluster.Name, s.inBundleApp), s.inBundleApp).
+			bundleApp := application.New(installName, s.inBundleApp).
 				WithCatalog(s.appCatalog).
 				WithOrganization(*cluster.Organization).
 				WithClusterName(cluster.Name).
@@ -246,7 +268,7 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 				WithInCluster(true)
 
 			// Replace app with bundle app that has version of child App set
-			bundleApp, err = bundles.OverrideChildApp(bundleApp, app)
+			bundleApp, err = bundles.OverrideChildApp(bundleApp, app, s.inBundleAppOverrideType)
 			Expect(err).NotTo(HaveOccurred())
 			state.SetBundleApplication(bundleApp)
 

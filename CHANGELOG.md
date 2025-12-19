@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add configurable bundle override types for setting child app values within bundles.
+- Add option to install Apps on the MC with inCluster option.
+- Support overriding App install name for bundles.
+
 ## [2.1.3] - 2025-12-15
 
 ### Changed
