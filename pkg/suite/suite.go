@@ -13,9 +13,9 @@ import (
 	. "github.com/onsi/gomega"    //nolint:staticcheck
 
 	"github.com/giantswarm/apiextensions-application/api/v1alpha1"
-	"github.com/giantswarm/cluster-standup-teardown/v2/pkg/clusterbuilder"
-	"github.com/giantswarm/cluster-standup-teardown/v2/pkg/standup"
-	"github.com/giantswarm/cluster-standup-teardown/v2/pkg/teardown"
+	"github.com/giantswarm/cluster-standup-teardown/v4/pkg/clusterbuilder"
+	"github.com/giantswarm/cluster-standup-teardown/v4/pkg/standup"
+	"github.com/giantswarm/cluster-standup-teardown/v4/pkg/teardown"
 	"github.com/giantswarm/clustertest/v2"
 	"github.com/giantswarm/clustertest/v2/pkg/application"
 	clusterclient "github.com/giantswarm/clustertest/v2/pkg/client"
