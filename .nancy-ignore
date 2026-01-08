@@ -1,6 +1,6 @@
-CVE-2025-47291 until=2026-01-01 # github.com/containerd/containerd@v1.7.28
-CVE-2024-25621 until=2026-01-01 # github.com/containerd/containerd@v1.7.28
-CVE-2025-47290 until=2026-01-01 # github.com/containerd/containerd@v1.7.28
-CVE-2025-64329 until=2026-01-01 # github.com/containerd/containerd@v1.7.28
-CVE-2025-47914 until=2026-01-01 # golang.org/x/crypto@v0.43.0
-CVE-2025-58181 until=2026-01-01 # golang.org/x/crypto@v0.43.0
+CVE-2025-47291 until=2026-04-01 # github.com/containerd/containerd - transitive dependency, not directly used
+CVE-2024-25621 until=2026-04-01 # github.com/containerd/containerd - transitive dependency, not directly used
+CVE-2025-47290 until=2026-04-01 # github.com/containerd/containerd - transitive dependency, not directly used
+CVE-2025-64329 until=2026-04-01 # github.com/containerd/containerd - transitive dependency, not directly used
+CVE-2025-47914 until=2026-04-01 # golang.org/x/crypto - transitive dependency
+CVE-2025-58181 until=2026-04-01 # golang.org/x/crypto - transitive dependency
