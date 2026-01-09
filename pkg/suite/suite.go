@@ -13,15 +13,15 @@ import (
 	. "github.com/onsi/gomega"    //nolint:staticcheck
 
 	"github.com/giantswarm/apiextensions-application/api/v1alpha1"
-	"github.com/giantswarm/cluster-standup-teardown/v2/pkg/clusterbuilder"
-	"github.com/giantswarm/cluster-standup-teardown/v2/pkg/standup"
-	"github.com/giantswarm/cluster-standup-teardown/v2/pkg/teardown"
-	"github.com/giantswarm/clustertest/v2"
-	"github.com/giantswarm/clustertest/v2/pkg/application"
-	clusterclient "github.com/giantswarm/clustertest/v2/pkg/client"
-	"github.com/giantswarm/clustertest/v2/pkg/logger"
-	"github.com/giantswarm/clustertest/v2/pkg/organization"
-	"github.com/giantswarm/clustertest/v2/pkg/wait"
+	"github.com/giantswarm/cluster-standup-teardown/v4/pkg/clusterbuilder"
+	"github.com/giantswarm/cluster-standup-teardown/v4/pkg/standup"
+	"github.com/giantswarm/cluster-standup-teardown/v4/pkg/teardown"
+	"github.com/giantswarm/clustertest/v3"
+	"github.com/giantswarm/clustertest/v3/pkg/application"
+	clusterclient "github.com/giantswarm/clustertest/v3/pkg/client"
+	"github.com/giantswarm/clustertest/v3/pkg/logger"
+	"github.com/giantswarm/clustertest/v3/pkg/organization"
+	"github.com/giantswarm/clustertest/v3/pkg/wait"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -319,27 +319,12 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 					)
 				},
 				func(wcClient *clusterclient.Client) {
-					skipDefaultAppsApp, err := state.GetCluster().UsesUnifiedClusterApp()
-					Expect(err).NotTo(HaveOccurred())
-
 					logger.Log("Waiting for all default apps to be ready")
 
+					// All providers now use unified cluster apps that deploy default apps directly
 					defaultAppsSelectorLabels := cr.MatchingLabels{
 						"giantswarm.io/cluster":        state.GetCluster().Name,
 						"app.kubernetes.io/managed-by": "Helm",
-					}
-
-					if !skipDefaultAppsApp {
-						defaultAppsAppName := fmt.Sprintf("%s-%s", state.GetCluster().Name, "default-apps")
-
-						Eventually(wait.IsAppDeployed(state.GetContext(), state.GetFramework().MC(), defaultAppsAppName, state.GetCluster().Organization.GetNamespace())).
-							WithTimeout(30 * time.Second).
-							WithPolling(50 * time.Millisecond).
-							Should(BeTrue())
-
-						defaultAppsSelectorLabels = cr.MatchingLabels{
-							"giantswarm.io/managed-by": defaultAppsAppName,
-						}
 					}
 
 					// Wait for all default-apps apps to be deployed

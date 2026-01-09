@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Update `clustertest` to v3.1.0 with breaking changes removing default-apps support and deprecated parameters.
+- Update `cluster-standup-teardown` to v4.0.0 with removal of default-apps values files and interface changes.
+- Simplified default apps checks - removed `UsesUnifiedClusterApp()` conditional logic as all providers now use unified cluster apps.
+
 ## [2.2.1] - 2025-12-23
 
 ### Changed
