@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-01-09
+
 ### Changed
 
 - Update `clustertest` to v3.1.0 with breaking changes removing default-apps support and deprecated parameters.
@@ -323,7 +325,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Config package to provide standard app configuration
 - Client package to abstract some test functionality
 
-[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v2.2.1...HEAD
+[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v3.0.0...HEAD
+[3.0.0]: https://github.com/giantswarm/apptest-framework/compare/v2.2.1...v3.0.0
 [2.2.1]: https://github.com/giantswarm/apptest-framework/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/giantswarm/apptest-framework/compare/v2.1.3...v2.2.0
 [2.1.3]: https://github.com/giantswarm/apptest-framework/compare/v2.1.2...v2.1.3
