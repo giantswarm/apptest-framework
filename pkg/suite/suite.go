@@ -224,11 +224,7 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 		// Create app
 		installName := s.installName
 		if installName == "" {
-			if s.inBundleApp != "" {
-				installName = s.inBundleApp
-			} else {
-				installName = s.appName
-			}
+			installName = s.appName
 		}
 		if !s.isMCTest {
 			installName = fmt.Sprintf("%s-%s", cluster.Name, installName)
@@ -258,7 +254,8 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 			Expect(err).ToNot(HaveOccurred())
 			bundleVersion = strings.TrimPrefix(bundleVersion, "v")
 
-			bundleApp := application.New(installName, s.inBundleApp).
+			bundleAppName := fmt.Sprintf("%s-%s", cluster.Name, s.inBundleApp)
+			bundleApp := application.New(bundleAppName, s.inBundleApp).
 				WithCatalog(s.appCatalog).
 				WithOrganization(*cluster.Organization).
 				WithClusterName(cluster.Name).
