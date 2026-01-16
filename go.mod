@@ -5,7 +5,7 @@ go 1.25.5
 require (
 	github.com/giantswarm/apiextensions-application v0.6.2
 	github.com/giantswarm/cluster-standup-teardown/v4 v4.0.0
-	github.com/giantswarm/clustertest/v3 v3.1.0
+	github.com/giantswarm/clustertest/v3 v3.1.1
 	github.com/onsi/ginkgo/v2 v2.27.5
 	github.com/onsi/gomega v1.39.0
 	golang.org/x/text v0.33.0
