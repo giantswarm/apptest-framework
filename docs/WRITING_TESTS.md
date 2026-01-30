@@ -7,6 +7,7 @@
   - [Upgrade Tests](#upgrade-tests)
   - [Testing App Bundles](#testing-app-bundles)
   - [Testing Default Apps](#testing-default-apps)
+  - [Testing with AWS API Access](#testing-with-aws-api-access)
   - [Related Resources](#related-resources)
 
 ## API Documentation
@@ -36,6 +37,14 @@ providers:
 # isMCTest: A boolean indicating whether this test should run on the management cluster rather than creating a workload cluster for the tests.
 # This defaults to false
 isMCTest: true
+
+# aws: (Optional) AWS-specific configuration for tests that need to interact with AWS APIs.
+# See "Testing with AWS API Access" section for more details.
+aws:
+  # iamRoleARN: The IAM Role ARN to assume for AWS API access
+  iamRoleARN: "arn:aws:iam::123456789012:role/e2e-test-readonly"
+  # region: Default AWS region for API calls
+  region: "eu-west-1"
 ```
 
 There are two locations that the `config.yaml` can be found:
@@ -162,6 +171,113 @@ The only other thing to be aware of is that the tests MUST be performed against 
 
 > [!TIP]
 > Example: [tests/e2e/suites/mcAppTest](https://github.com/giantswarm/apptest-framework/blob/0d6ce8d985465957a3167f234448326149c12b3f/tests/e2e/suites/mcAppTest/mc_app_suite_test.go)
+
+## Testing with AWS API Access
+
+Some tests may need to interact with AWS APIs to verify that resources were created correctly (e.g., Load Balancers, EBS volumes, Route53 records). This framework supports AWS authentication via IRSA (IAM Roles for Service Accounts).
+
+### Configuration
+
+To enable AWS API access, add the `aws` configuration block to your test suite's `config.yaml`:
+
+```yaml
+appName: my-aws-app
+repoName: my-aws-app
+appCatalog: giantswarm
+providers:
+- capa
+aws:
+  # The IAM Role ARN to assume for AWS API access
+  iamRoleARN: "arn:aws:iam::123456789012:role/e2e-test-readonly"
+  # Default AWS region for API calls
+  region: "eu-west-1"
+```
+
+### IAM Role Prerequisites
+
+The IAM Role must have:
+
+1. **Trust policy** - Allows the OIDC provider of the cluster where the test pod runs:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::ACCOUNT_ID:oidc-provider/OIDC_PROVIDER_URL"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "OIDC_PROVIDER_URL:aud": "sts.amazonaws.com"
+        }
+      }
+    }
+  ]
+}
+```
+
+2. **Permissions** - The necessary permissions for the AWS APIs your tests need to call (e.g., `elasticloadbalancing:DescribeLoadBalancers`, `ec2:DescribeVolumes`).
+
+### Using AWS APIs in Tests
+
+The framework provides helper functions in the `pkg/aws` package to simplify creating AWS clients:
+
+```go
+import (
+    "context"
+
+    . "github.com/onsi/ginkgo/v2"
+    . "github.com/onsi/gomega"
+
+    awshelper "github.com/giantswarm/apptest-framework/v3/pkg/aws"
+    "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
+)
+
+var _ = Describe("AWS Resource Tests", func() {
+    It("should create a Load Balancer", func() {
+        ctx := context.Background()
+
+        // Create AWS config - credentials are automatically provided via IRSA
+        cfg, err := awshelper.NewConfig(ctx, "eu-west-1")
+        Expect(err).NotTo(HaveOccurred())
+
+        // Create an ELB client
+        elbClient := elasticloadbalancingv2.NewFromConfig(cfg)
+
+        // Use the client to verify resources
+        result, err := elbClient.DescribeLoadBalancers(ctx, &elasticloadbalancingv2.DescribeLoadBalancersInput{})
+        Expect(err).NotTo(HaveOccurred())
+        Expect(result.LoadBalancers).NotTo(BeEmpty())
+    })
+})
+```
+
+### Helper Functions
+
+The `pkg/aws` package provides these helper functions:
+
+| Function | Description |
+| --- | --- |
+| `NewConfig(ctx, region)` | Creates an AWS config using the default credential chain |
+| `NewConfigWithRegion(ctx, region)` | Creates an AWS config, requiring a region to be specified |
+| `MustNewConfig(ctx, region)` | Like `NewConfig` but panics on error (useful in test setup) |
+| `IsIRSAConfigured()` | Returns true if IRSA environment variables are set |
+| `GetIRSARoleARN()` | Returns the IAM Role ARN configured via IRSA |
+
+### Running Locally
+
+When running tests locally (not in CI), you can authenticate using any method supported by the AWS SDK's default credential chain:
+
+- Environment variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`)
+- Shared credentials file (`~/.aws/credentials`)
+- IAM role for EC2 instances
+- SSO credentials
+
+> [!NOTE]
+> AWS API access is only available when running in CI with IRSA configured, or locally with valid AWS credentials. Tests that require AWS access should check `awshelper.IsIRSAConfigured()` or handle credential errors gracefully if AWS access is optional.
 
 ## Related Resources
 
