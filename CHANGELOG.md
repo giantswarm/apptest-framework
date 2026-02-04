@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add AWS IRSA support for e2e tests that need AWS API access. Configure `aws.iamRoleARN` in your test suite's `config.yaml`.
+
 ## [3.0.1] - 2026-01-14
 
 ### Fixed
