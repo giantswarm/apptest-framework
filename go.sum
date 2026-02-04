@@ -136,8 +136,8 @@ github.com/fxamacker/cbor/v2 v2.9.0 h1:NpKPmjDBgUfBms6tr6JZkTHtfFGcMKsw3eGcmD/sa
 github.com/fxamacker/cbor/v2 v2.9.0/go.mod h1:vM4b+DJCtHn+zz7h3FFp/hDAI9WNWCsZj23V5ytsSxQ=
 github.com/giantswarm/apiextensions-application v0.6.2 h1:XL86OrpprWl5Wp38EUvUXt3ztTo25+V63oDVlFwDpNg=
 github.com/giantswarm/apiextensions-application v0.6.2/go.mod h1:8ylqSmDSzFblCppRQTFo8v9s/F6MX6RTusVVoDDfWso=
-github.com/giantswarm/cluster-standup-teardown/v4 v4.0.0 h1:6vnWEDpRWslmX1egJO1kBcNRkXlVzDuZEpq62khdWeE=
-github.com/giantswarm/cluster-standup-teardown/v4 v4.0.0/go.mod h1:as+YNq8OkoLwaqc7rEuzs1IZm6S9vmtEhXIJe+X0q8w=
+github.com/giantswarm/cluster-standup-teardown/v4 v4.1.0 h1:mTbvRu/Eg5z5JWbwh7YkAjpiZoiVv1QhEHI8vl7JINU=
+github.com/giantswarm/cluster-standup-teardown/v4 v4.1.0/go.mod h1:8SmzOv4iR85dNw6EurLm/IXzcwtMZCT+kKlu/F09tWA=
 github.com/giantswarm/clustertest/v3 v3.1.2 h1:/sz4fWAx4ZA+3ExMgWHz9c/rsjdkcccTuBCkhvFTORI=
 github.com/giantswarm/clustertest/v3 v3.1.2/go.mod h1:0gYceiUFJnHQllQVhTWIJu9iMIjAq2KjdDV0TfCSY50=
 github.com/giantswarm/k8smetadata v0.25.0 h1:6mKmmm4xHPuBvxDMAkIhU5oj6KJkJSaR2s5esIsnHs4=
