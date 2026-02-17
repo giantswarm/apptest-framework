@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.1] - 2026-02-17
+
 ### Changed
 
 - Go: Update `clustertest` to v3.1.3.
@@ -341,7 +343,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Config package to provide standard app configuration
 - Client package to abstract some test functionality
 
-[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v3.1.0...HEAD
+[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v3.1.1...HEAD
+[3.1.1]: https://github.com/giantswarm/apptest-framework/compare/v3.1.0...v3.1.1
 [3.1.0]: https://github.com/giantswarm/apptest-framework/compare/v3.0.1...v3.1.0
 [3.0.1]: https://github.com/giantswarm/apptest-framework/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/giantswarm/apptest-framework/compare/v2.2.1...v3.0.0
