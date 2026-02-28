@@ -6,7 +6,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.41.2
 	github.com/aws/aws-sdk-go-v2/config v1.32.10
 	github.com/giantswarm/apiextensions-application v0.6.2
-	github.com/giantswarm/cluster-standup-teardown/v4 v4.1.1
+	github.com/giantswarm/cluster-standup-teardown/v4 v4.1.2
 	github.com/giantswarm/clustertest/v3 v3.2.0
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
