@@ -12,7 +12,7 @@ require (
 	github.com/onsi/gomega v1.39.1
 	golang.org/x/text v0.34.0
 	k8s.io/apimachinery v0.35.2
-	sigs.k8s.io/controller-runtime v0.23.1
+	sigs.k8s.io/controller-runtime v0.23.2
 	sigs.k8s.io/yaml v1.6.0
 )
 
