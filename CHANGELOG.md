@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Support for `bundle_values.yaml` to configure the bundle App when using `InAppBundle`. The file contents are applied as an `extraConfigs` ConfigMap on the bundle App.
+
 ## [3.1.1] - 2026-02-17
 
 ### Changed
