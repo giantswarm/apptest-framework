@@ -41,6 +41,7 @@ type suite struct {
 	appCatalog  string
 
 	valuesFile       string
+	bundleValuesFile string
 	isUpgrade        bool
 	installNamespace string
 	inCluster        bool
@@ -70,6 +71,7 @@ func New() *suite {
 		isDefaultApp:            false,
 		installNamespace:        "default",
 		valuesFile:              "./values.yaml",
+		bundleValuesFile:        "./bundle_values.yaml",
 		inBundleApp:             "",
 		inBundleAppOverrideType: bundles.AppNameOverrideAuto,
 		inCluster:               false,
@@ -111,6 +113,14 @@ func (s *suite) WithInCluster(inCluster bool) *suite {
 // If not set this default to `./values.yaml`
 func (s *suite) WithValuesFile(valuesFile string) *suite {
 	s.valuesFile, _ = filepath.Abs(valuesFile)
+	return s
+}
+
+// WithBundleValuesFile sets a bundle_values.yaml file to use for the bundle App values.
+// If the file is not found it is ignored.
+// If not set this defaults to `./bundle_values.yaml`
+func (s *suite) WithBundleValuesFile(valuesFile string) *suite {
+	s.bundleValuesFile, _ = filepath.Abs(valuesFile)
 	return s
 }
 
@@ -462,6 +472,12 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 					return
 				} else {
 					app := getInstallApp()
+
+					if state.GetBundleApplication() != nil {
+						if _, err := os.Stat(s.bundleValuesFile); err == nil {
+							app = app.MustWithValuesFile(s.bundleValuesFile, &application.TemplateValues{})
+						}
+					}
 
 					ctx, cancel := context.WithTimeout(state.GetContext(), 5*time.Minute)
 					defer cancel()
