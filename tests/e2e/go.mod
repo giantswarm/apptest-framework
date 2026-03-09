@@ -6,7 +6,7 @@ go 1.25.7
 replace github.com/giantswarm/apptest-framework/v3 => ../../
 
 require (
-	github.com/giantswarm/apptest-framework/v3 v3.1.1
+	github.com/giantswarm/apptest-framework/v3 v3.2.0
 	github.com/giantswarm/clustertest/v3 v3.3.0
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
@@ -168,7 +168,7 @@ require (
 	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2 // indirect
 	oras.land/oras-go/v2 v2.6.0 // indirect
 	sigs.k8s.io/cluster-api v1.10.10 // indirect
-	sigs.k8s.io/controller-runtime v0.23.1 // indirect
+	sigs.k8s.io/controller-runtime v0.23.3 // indirect
 	sigs.k8s.io/e2e-framework v0.6.0 // indirect
 	sigs.k8s.io/gateway-api v1.4.1 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
