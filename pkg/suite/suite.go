@@ -22,6 +22,7 @@ import (
 	"github.com/giantswarm/clustertest/v3/pkg/logger"
 	"github.com/giantswarm/clustertest/v3/pkg/organization"
 	"github.com/giantswarm/clustertest/v3/pkg/wait"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -41,6 +42,7 @@ type suite struct {
 	appCatalog  string
 
 	valuesFile       string
+	bundleValuesFile string
 	isUpgrade        bool
 	installNamespace string
 	inCluster        bool
@@ -50,6 +52,7 @@ type suite struct {
 	inBundleApp             string
 	inBundleAppOverrideType bundles.AppNameOverrideType
 	isDefaultApp            bool
+	bundleValuesConfigMap   string
 
 	afterClusterReady func()
 	beforeUpgrade     func()
@@ -70,6 +73,7 @@ func New() *suite {
 		isDefaultApp:            false,
 		installNamespace:        "default",
 		valuesFile:              "./values.yaml",
+		bundleValuesFile:        "./bundle_values.yaml",
 		inBundleApp:             "",
 		inBundleAppOverrideType: bundles.AppNameOverrideAuto,
 		inCluster:               false,
@@ -114,7 +118,15 @@ func (s *suite) WithValuesFile(valuesFile string) *suite {
 	return s
 }
 
-// InBundleApp sets this test suite to install the App via the provided bundle App by setting the
+// WithBundleValuesFile sets a bundle_values.yaml file to use for the bundle App values.
+// If the file is not found it is ignored.
+// If not set this defaults to `./bundle_values.yaml`
+func (s *suite) WithBundleValuesFile(valuesFile string) *suite {
+	s.bundleValuesFile, _ = filepath.Abs(valuesFile)
+	return s
+}
+
+// InAppBundle sets this test suite to install the App via the provided bundle App by setting the
 // appropriate chart values
 func (s *suite) InAppBundle(appBundleName string) *suite {
 	s.inBundleApp = strings.ToLower(appBundleName)
@@ -366,6 +378,22 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 			By("User-provided After Suite", s.afterSuite)
 		}
 
+		if s.bundleValuesConfigMap != "" {
+			By("Deleting bundle values ConfigMap", func() {
+				app := getInstallApp()
+				configMap := &corev1.ConfigMap{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      s.bundleValuesConfigMap,
+						Namespace: app.GetNamespace(),
+					},
+				}
+				err := state.GetFramework().MC().Delete(state.GetContext(), configMap)
+				if err != nil && !errors.IsNotFound(err) {
+					Expect(err).NotTo(HaveOccurred())
+				}
+			})
+		}
+
 		By("Uninstalling App", func() {
 			if s.isDefaultApp {
 				Skip("App is a default app - skipping")
@@ -465,6 +493,41 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 
 					ctx, cancel := context.WithTimeout(state.GetContext(), 5*time.Minute)
 					defer cancel()
+
+					if state.GetBundleApplication() != nil {
+						if _, err := os.Stat(s.bundleValuesFile); err == nil {
+							bundleValuesContent, err := os.ReadFile(s.bundleValuesFile)
+							Expect(err).NotTo(HaveOccurred())
+
+							configMapName := fmt.Sprintf("%s-bundle-values", app.InstallName)
+							configMap := &corev1.ConfigMap{
+								TypeMeta: v1.TypeMeta{
+									Kind:       "ConfigMap",
+									APIVersion: "v1",
+								},
+								ObjectMeta: v1.ObjectMeta{
+									Name:      configMapName,
+									Namespace: app.GetNamespace(),
+								},
+								Data: map[string]string{
+									"values": string(bundleValuesContent),
+								},
+							}
+							err = state.GetFramework().MC().CreateOrUpdate(ctx, configMap)
+							Expect(err).NotTo(HaveOccurred())
+							s.bundleValuesConfigMap = configMapName
+
+							app = app.WithExtraConfigs([]v1alpha1.AppExtraConfig{
+								{
+									Kind:      "configMap",
+									Name:      configMapName,
+									Namespace: app.GetNamespace(),
+									Priority:  25,
+								},
+							})
+						}
+					}
+
 					client.InstallApp(ctx, app)
 				}
 
