@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.2.0] - 2026-03-09
+
 ### Added
 
 - Support for `bundle_values.yaml` to configure the bundle App when using `InAppBundle`. The file contents are applied as an `extraConfigs` ConfigMap on the bundle App.
@@ -347,7 +349,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Config package to provide standard app configuration
 - Client package to abstract some test functionality
 
-[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v3.1.1...HEAD
+[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v3.2.0...HEAD
+[3.2.0]: https://github.com/giantswarm/apptest-framework/compare/v3.1.1...v3.2.0
 [3.1.1]: https://github.com/giantswarm/apptest-framework/compare/v3.1.0...v3.1.1
 [3.1.0]: https://github.com/giantswarm/apptest-framework/compare/v3.0.1...v3.1.0
 [3.0.1]: https://github.com/giantswarm/apptest-framework/compare/v3.0.0...v3.0.1
