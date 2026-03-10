@@ -47,7 +47,8 @@ type suite struct {
 	installNamespace string
 	inCluster        bool
 
-	isMCTest bool
+	isMCTest  bool
+	providers []string
 
 	inBundleApp             string
 	inBundleAppOverrideType bundles.AppNameOverrideType
@@ -69,6 +70,7 @@ func New() *suite {
 		repoName:                testConfig.RepoName,
 		appCatalog:              testConfig.AppCatalog,
 		isMCTest:                testConfig.IsMCTest,
+		providers:               testConfig.Providers,
 		isUpgrade:               false,
 		isDefaultApp:            false,
 		installNamespace:        "default",
@@ -221,6 +223,14 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 			cluster = &application.Cluster{
 				Name:         state.GetFramework().MC().GetClusterName(),
 				Organization: organization.New("giantswarm"),
+			}
+			// Derive the provider from the first entry in providers so that
+			// release-based checks (e.g. IsDefaultApp) work for MC tests.
+			if len(s.providers) > 0 {
+				if cb, cbErr := clusterbuilder.GetClusterBuilderForContext(s.providers[0]); cbErr == nil {
+					// Build a dummy cluster app only to extract the resolved provider.
+					cluster.Provider = cb.NewClusterApp(cluster.Name, cluster.Organization.Name, nil).Provider
+				}
 			}
 		} else {
 			cb, err := clusterbuilder.GetClusterBuilderForContext(mcContext)
