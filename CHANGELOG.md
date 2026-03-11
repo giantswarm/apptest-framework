@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Support for Flux HelmRelease CRs as an alternative to Giant Swarm App CRs. Use `WithHelmRelease(true)` along with `WithHelmRepoName()` to install charts via HelmRelease resources instead of App CRs.
+
 ## [3.2.0] - 2026-03-09
 
 ### Added
