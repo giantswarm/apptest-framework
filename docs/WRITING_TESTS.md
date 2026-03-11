@@ -7,6 +7,7 @@
   - [Upgrade Tests](#upgrade-tests)
   - [Testing App Bundles](#testing-app-bundles)
   - [Testing Default Apps](#testing-default-apps)
+  - [Testing with HelmRelease CRs](#testing-with-helmrelease-crs)
   - [Testing with AWS API Access](#testing-with-aws-api-access)
   - [Related Resources](#related-resources)
 
@@ -171,6 +172,129 @@ The only other thing to be aware of is that the tests MUST be performed against 
 
 > [!TIP]
 > Example: [tests/e2e/suites/mcAppTest](https://github.com/giantswarm/apptest-framework/blob/0d6ce8d985465957a3167f234448326149c12b3f/tests/e2e/suites/mcAppTest/mc_app_suite_test.go)
+
+## Testing with HelmRelease CRs
+
+By default, the framework installs Apps using Giant Swarm's `App` CR. If your chart is managed by Flux and you want to test it via a `HelmRelease` CR instead, you can enable HelmRelease mode.
+
+The framework supports both source kinds used by Flux HelmReleases:
+- **`OCIRepository`** (default) — used by most Giant Swarm apps deployed via Flux (e.g., `observability-operator`)
+- **`HelmRepository`** — for charts sourced from traditional Helm repositories
+
+### Prerequisites
+
+A source resource (`OCIRepository` or `HelmRepository`) must already exist in the target cluster that points to the chart.
+
+### Configuration
+
+Enable HelmRelease mode using the `WithHelmRelease(true)` builder method and provide the source reference:
+
+```go
+// OCIRepository example (default source kind, matching real GS deployments)
+suite.New().
+  WithHelmRelease(true).
+  WithHelmSourceName("observability-operator").
+  WithHelmSourceNamespace("giantswarm").
+  WithInstallNamespace("giantswarm").
+  WithHelmTargetNamespace("monitoring").
+  WithHelmStorageNamespace("monitoring").
+  WithHelmReleaseName("observability-operator").
+  WithValuesFile("./values.yaml").
+  Tests(func() {
+
+    It("has the expected resources", func() {
+      // your test assertions
+    })
+
+  }).
+  Run(t, "HelmRelease Test")
+```
+
+```go
+// HelmRepository example
+suite.New().
+  WithHelmRelease(true).
+  WithHelmSourceKind(client.SourceKindHelmRepository).
+  WithHelmSourceName("my-helm-repo").
+  WithHelmSourceNamespace("flux-system").
+  WithInstallNamespace("default").
+  WithHelmTargetNamespace("my-app-ns").
+  WithValuesFile("./values.yaml").
+  Tests(func() {
+    // your test assertions
+  }).
+  Run(t, "HelmRelease HelmRepo Test")
+```
+
+### Available Builder Methods
+
+| Method | Description |
+| --- | --- |
+| `WithHelmRelease(bool)` | Enables HelmRelease mode. When `true`, creates a Flux `HelmRelease` CR instead of an `App` CR. |
+| `WithHelmSourceKind(SourceKind)` | Sets the source kind: `client.SourceKindOCIRepository` (default) or `client.SourceKindHelmRepository`. |
+| `WithHelmSourceName(string)` | Sets the name of the source reference (`OCIRepository` or `HelmRepository`). Required. |
+| `WithHelmSourceNamespace(string)` | Sets the namespace of the source reference. Defaults to the HelmRelease namespace. |
+| `WithHelmTargetNamespace(string)` | Sets the namespace where the Helm chart will be installed (`spec.targetNamespace`). |
+| `WithHelmStorageNamespace(string)` | Sets the namespace for Helm storage (`spec.storageNamespace`). |
+| `WithHelmReleaseName(string)` | Sets the Helm release name (`spec.releaseName`). Defaults to the HelmRelease resource name. |
+| `WithHelmTimeout(time.Duration)` | Sets the timeout for Helm operations (`spec.timeout`). |
+| `WithHelmRetries(int)` | Sets the number of retries for install/upgrade remediation. Defaults to 10. |
+
+### How It Works
+
+When HelmRelease mode is enabled, the framework will:
+
+1. Create a `Secret` containing chart values (from the values file) if values are provided.
+2. Create a `HelmRelease` CR referencing the specified source (OCIRepository or HelmRepository).
+3. Configure install/upgrade remediation with retries and rollback strategy.
+4. Wait for the HelmRelease `Ready` condition to become `True`.
+5. Run your test cases.
+6. Delete the `HelmRelease` and associated values `Secret` during cleanup.
+
+### Upgrade Tests with HelmRelease
+
+Upgrade tests work with HelmRelease mode when using a `HelmRepository` source. The framework will install the latest released version first, then update the chart version on the `HelmRelease`:
+
+```go
+suite.New().
+  WithHelmRelease(true).
+  WithHelmSourceKind(client.SourceKindHelmRepository).
+  WithHelmSourceName("my-helm-repo").
+  WithIsUpgrade(true).
+  WithInstallNamespace("default").
+  BeforeUpgrade(func() {
+    // checks before upgrading
+  }).
+  Tests(func() {
+    // checks after upgrading
+  }).
+  Run(t, "HelmRelease Upgrade Test")
+```
+
+> [!NOTE]
+> For `OCIRepository` sources, the chart version is controlled by the OCIRepository resource itself, not by the HelmRelease. Upgrade tests with OCIRepository require updating the OCIRepository tag externally.
+
+### Client Helper Functions
+
+The `pkg/client` package provides helper functions for working with HelmRelease CRs directly in your tests:
+
+| Function | Description |
+| --- | --- |
+| `client.IsHelmReleaseReady(ctx, name, namespace)` | Checks if a HelmRelease has `Ready=True` |
+| `client.IsHelmReleaseVersion(ctx, name, namespace, version)` | Checks the chart version on a HelmRelease |
+
+### Accessing State
+
+The HelmRelease is stored in the shared state and can be accessed within your tests:
+
+```go
+import "github.com/giantswarm/apptest-framework/v3/pkg/state"
+
+hr := state.GetHelmRelease()
+```
+
+> [!NOTE]
+> HelmRelease mode cannot be combined with App Bundle mode (`InAppBundle`). If you need to test a chart within a bundle, use the standard App CR mode.
 
 ## Testing with AWS API Access
 
