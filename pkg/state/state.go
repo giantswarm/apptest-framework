@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	"github.com/giantswarm/clustertest/v3"
 	"github.com/giantswarm/clustertest/v3/pkg/application"
 )
@@ -15,6 +16,7 @@ type state struct {
 	cluster           *application.Cluster
 	application       *application.Application
 	bundleApplication *application.Application
+	helmRelease       *helmv2.HelmRelease
 	ctx               context.Context
 }
 
@@ -75,4 +77,13 @@ func SetBundleApplication(app *application.Application) {
 
 func GetBundleApplication() *application.Application {
 	return get().bundleApplication
+}
+
+func SetHelmRelease(hr *helmv2.HelmRelease) {
+	s := get()
+	s.helmRelease = hr
+}
+
+func GetHelmRelease() *helmv2.HelmRelease {
+	return get().helmRelease
 }
