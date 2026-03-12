@@ -65,12 +65,27 @@ type HelmReleaseConfig struct {
 }
 
 // InstallHelmRelease creates a HelmRelease CR and waits for it to become ready.
+// It also ensures that the target and storage namespaces exist before creating the HelmRelease.
 // Timeout can be controlled via the provided context.
 func InstallHelmRelease(ctx context.Context, cfg HelmReleaseConfig) {
 	GinkgoHelper()
 
 	if cfg.Interval == 0 {
 		cfg.Interval = 5 * time.Minute
+	}
+
+	// Default SourceName to ChartName if not set
+	if cfg.SourceName == "" {
+		cfg.SourceName = cfg.ChartName
+	}
+
+	// Ensure required namespaces exist
+	ensureNamespace(ctx, cfg.Namespace)
+	if cfg.TargetNamespace != "" {
+		ensureNamespace(ctx, cfg.TargetNamespace)
+	}
+	if cfg.StorageNamespace != "" {
+		ensureNamespace(ctx, cfg.StorageNamespace)
 	}
 
 	hr := buildHelmRelease(cfg)
@@ -164,6 +179,11 @@ func DeleteHelmRelease(ctx context.Context, name, namespace string) error {
 }
 
 func buildHelmRelease(cfg HelmReleaseConfig) *helmv2.HelmRelease {
+	sourceName := cfg.SourceName
+	if sourceName == "" {
+		sourceName = cfg.ChartName
+	}
+
 	sourceNamespace := cfg.SourceNamespace
 	if sourceNamespace == "" {
 		sourceNamespace = cfg.Namespace
@@ -213,7 +233,7 @@ func buildHelmRelease(cfg HelmReleaseConfig) *helmv2.HelmRelease {
 	case SourceKindOCIRepository:
 		hr.Spec.ChartRef = &helmv2.CrossNamespaceSourceReference{
 			Kind:      string(SourceKindOCIRepository),
-			Name:      cfg.SourceName,
+			Name:      sourceName,
 			Namespace: sourceNamespace,
 		}
 	case SourceKindHelmRepository:
@@ -223,7 +243,7 @@ func buildHelmRelease(cfg HelmReleaseConfig) *helmv2.HelmRelease {
 				Version: cfg.ChartVersion,
 				SourceRef: helmv2.CrossNamespaceObjectReference{
 					Kind:      string(SourceKindHelmRepository),
-					Name:      cfg.SourceName,
+					Name:      sourceName,
 					Namespace: sourceNamespace,
 				},
 			},
@@ -289,6 +309,27 @@ func UpdateHelmReleaseVersion(ctx context.Context, name, namespace, version stri
 		hr.Spec.Chart.Spec.Version = version
 		err = state.GetFramework().MC().Update(ctx, hr, &cr.UpdateOptions{})
 		Expect(err).NotTo(HaveOccurred())
+	}
+}
+
+// ensureNamespace creates a namespace if it doesn't already exist.
+func ensureNamespace(ctx context.Context, name string) {
+	ns := &corev1.Namespace{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1",
+			Kind:       "Namespace",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+	err := state.GetFramework().MC().Get(ctx, types.NamespacedName{Name: name}, ns)
+	if errors.IsNotFound(err) {
+		logger.Log("Creating namespace %s", name)
+		err = state.GetFramework().MC().Create(ctx, ns)
+		if err != nil && !errors.IsAlreadyExists(err) {
+			Expect(err).NotTo(HaveOccurred())
+		}
 	}
 }
 
