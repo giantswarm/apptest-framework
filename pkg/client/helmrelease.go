@@ -62,6 +62,9 @@ type HelmReleaseConfig struct {
 	Timeout time.Duration
 	// Retries is the number of retries for install/upgrade remediation. Defaults to 10.
 	Retries *int
+	// ServiceAccountName is the Kubernetes service account to impersonate when reconciling.
+	// Required by clusters with the flux-multi-tenancy Kyverno policy.
+	ServiceAccountName string
 }
 
 // InstallHelmRelease creates a HelmRelease CR and waits for it to become ready.
@@ -260,6 +263,10 @@ func buildHelmRelease(cfg HelmReleaseConfig) *helmv2.HelmRelease {
 
 	if cfg.ReleaseName != "" {
 		hr.Spec.ReleaseName = cfg.ReleaseName
+	}
+
+	if cfg.ServiceAccountName != "" {
+		hr.Spec.ServiceAccountName = cfg.ServiceAccountName
 	}
 
 	if cfg.Values != "" {
