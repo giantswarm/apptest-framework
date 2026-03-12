@@ -239,6 +239,7 @@ suite.New().
 | `WithHelmReleaseName(string)` | Sets the Helm release name (`spec.releaseName`). Defaults to the HelmRelease resource name. |
 | `WithHelmTimeout(time.Duration)` | Sets the timeout for Helm operations (`spec.timeout`). |
 | `WithHelmRetries(int)` | Sets the number of retries for install/upgrade remediation. Defaults to 10. |
+| `WithHelmServiceAccountName(string)` | Sets the service account to impersonate when reconciling. Required by clusters with the `flux-multi-tenancy` Kyverno policy. |
 
 ### How It Works
 
@@ -292,6 +293,11 @@ import "github.com/giantswarm/apptest-framework/v3/pkg/state"
 
 hr := state.GetHelmRelease()
 ```
+
+> [!IMPORTANT]
+> Giant Swarm MCs enforce a `flux-multi-tenancy` Kyverno policy that requires:
+> 1. `serviceAccountName` must be set on HelmReleases — use `WithHelmServiceAccountName()`
+> 2. `targetNamespace` must match `metadata.namespace` unless `kubeConfig` is set — make sure `WithInstallNamespace()` and `WithHelmTargetNamespace()` use the same namespace, or omit `WithHelmTargetNamespace()` entirely
 
 > [!NOTE]
 > HelmRelease mode cannot be combined with App Bundle mode (`InAppBundle`). If you need to test a chart within a bundle, use the standard App CR mode.

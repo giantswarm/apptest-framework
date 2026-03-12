@@ -56,15 +56,16 @@ type suite struct {
 	bundleValuesConfigMap   string
 
 	// HelmRelease mode
-	useHelmRelease       bool
-	helmSourceKind       client.SourceKind
-	helmSourceName       string
-	helmSourceNamespace  string
-	helmTargetNamespace  string
-	helmStorageNamespace string
-	helmReleaseName      string
-	helmTimeout          time.Duration
-	helmRetries          *int
+	useHelmRelease         bool
+	helmSourceKind         client.SourceKind
+	helmSourceName         string
+	helmSourceNamespace    string
+	helmTargetNamespace    string
+	helmStorageNamespace   string
+	helmReleaseName        string
+	helmTimeout            time.Duration
+	helmRetries            *int
+	helmServiceAccountName string
 
 	afterClusterReady func()
 	beforeUpgrade     func()
@@ -216,6 +217,14 @@ func (s *suite) WithHelmTimeout(timeout time.Duration) *suite {
 // If not set, defaults to 10.
 func (s *suite) WithHelmRetries(retries int) *suite {
 	s.helmRetries = &retries
+	return s
+}
+
+// WithHelmServiceAccountName sets the Kubernetes service account to impersonate
+// when reconciling the HelmRelease. Required by clusters with the flux-multi-tenancy
+// Kyverno policy.
+func (s *suite) WithHelmServiceAccountName(name string) *suite {
+	s.helmServiceAccountName = name
 	return s
 }
 
@@ -558,19 +567,20 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 						}
 
 						client.InstallHelmRelease(ctx, client.HelmReleaseConfig{
-							Name:             installName,
-							Namespace:        s.installNamespace,
-							TargetNamespace:  s.helmTargetNamespace,
-							ChartName:        s.appName,
-							ChartVersion:     latestVersion,
-							SourceKind:       s.helmSourceKind,
-							SourceName:       s.helmSourceName,
-							SourceNamespace:  s.helmSourceNamespace,
-							StorageNamespace: s.helmStorageNamespace,
-							ReleaseName:      s.helmReleaseName,
-							Timeout:          s.helmTimeout,
-							Retries:          s.helmRetries,
-							Values:           values,
+							Name:               installName,
+							Namespace:          s.installNamespace,
+							TargetNamespace:    s.helmTargetNamespace,
+							ChartName:          s.appName,
+							ChartVersion:       latestVersion,
+							SourceKind:         s.helmSourceKind,
+							SourceName:         s.helmSourceName,
+							SourceNamespace:    s.helmSourceNamespace,
+							StorageNamespace:   s.helmStorageNamespace,
+							ReleaseName:        s.helmReleaseName,
+							Timeout:            s.helmTimeout,
+							Retries:            s.helmRetries,
+							ServiceAccountName: s.helmServiceAccountName,
+							Values:             values,
 						})
 					} else {
 						var app *application.Application
@@ -619,19 +629,20 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 						}
 
 						client.InstallHelmRelease(ctx, client.HelmReleaseConfig{
-							Name:             installName,
-							Namespace:        s.installNamespace,
-							TargetNamespace:  s.helmTargetNamespace,
-							ChartName:        s.appName,
-							ChartVersion:     appVersion,
-							SourceKind:       s.helmSourceKind,
-							SourceName:       s.helmSourceName,
-							SourceNamespace:  s.helmSourceNamespace,
-							StorageNamespace: s.helmStorageNamespace,
-							ReleaseName:      s.helmReleaseName,
-							Timeout:          s.helmTimeout,
-							Retries:          s.helmRetries,
-							Values:           values,
+							Name:               installName,
+							Namespace:          s.installNamespace,
+							TargetNamespace:    s.helmTargetNamespace,
+							ChartName:          s.appName,
+							ChartVersion:       appVersion,
+							SourceKind:         s.helmSourceKind,
+							SourceName:         s.helmSourceName,
+							SourceNamespace:    s.helmSourceNamespace,
+							StorageNamespace:   s.helmStorageNamespace,
+							ReleaseName:        s.helmReleaseName,
+							Timeout:            s.helmTimeout,
+							Retries:            s.helmRetries,
+							ServiceAccountName: s.helmServiceAccountName,
+							Values:             values,
 						})
 					}
 
