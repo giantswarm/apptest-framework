@@ -91,6 +91,11 @@ func InstallHelmRelease(ctx context.Context, cfg HelmReleaseConfig) {
 		ensureNamespace(ctx, cfg.StorageNamespace)
 	}
 
+	// Ensure the service account exists
+	if cfg.ServiceAccountName != "" {
+		ensureServiceAccount(ctx, cfg.ServiceAccountName, cfg.Namespace)
+	}
+
 	hr := buildHelmRelease(cfg)
 	logger.Log("Installing HelmRelease %s/%s (chart: %s, version: %s, source: %s/%s)",
 		hr.Namespace, hr.Name, cfg.ChartName, cfg.ChartVersion, cfg.SourceKind, cfg.SourceName)
@@ -316,6 +321,28 @@ func UpdateHelmReleaseVersion(ctx context.Context, name, namespace, version stri
 		hr.Spec.Chart.Spec.Version = version
 		err = state.GetFramework().MC().Update(ctx, hr, &cr.UpdateOptions{})
 		Expect(err).NotTo(HaveOccurred())
+	}
+}
+
+// ensureServiceAccount creates a service account if it doesn't already exist.
+func ensureServiceAccount(ctx context.Context, name, namespace string) {
+	sa := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+	err := state.GetFramework().MC().Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, sa)
+	if errors.IsNotFound(err) {
+		logger.Log("Creating ServiceAccount %s/%s", namespace, name)
+		sa.TypeMeta = metav1.TypeMeta{
+			APIVersion: "v1",
+			Kind:       "ServiceAccount",
+		}
+		err = state.GetFramework().MC().Create(ctx, sa)
+		if err != nil && !errors.IsAlreadyExists(err) {
+			Expect(err).NotTo(HaveOccurred())
+		}
 	}
 }
 
