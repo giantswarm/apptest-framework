@@ -221,8 +221,8 @@ func (s *suite) WithHelmRetries(retries int) *suite {
 }
 
 // WithHelmServiceAccountName sets the Kubernetes service account to impersonate
-// when reconciling the HelmRelease. Required by clusters with the flux-multi-tenancy
-// Kyverno policy.
+// when reconciling the HelmRelease. If not set, defaults to the appName from config.
+// The service account is auto-created if it doesn't exist.
 func (s *suite) WithHelmServiceAccountName(name string) *suite {
 	s.helmServiceAccountName = name
 	return s
@@ -579,7 +579,7 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 							ReleaseName:        s.helmReleaseName,
 							Timeout:            s.helmTimeout,
 							Retries:            s.helmRetries,
-							ServiceAccountName: s.helmServiceAccountName,
+							ServiceAccountName: s.getHelmServiceAccountName(),
 							Values:             values,
 						})
 					} else {
@@ -641,7 +641,7 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 							ReleaseName:        s.helmReleaseName,
 							Timeout:            s.helmTimeout,
 							Retries:            s.helmRetries,
-							ServiceAccountName: s.helmServiceAccountName,
+							ServiceAccountName: s.getHelmServiceAccountName(),
 							Values:             values,
 						})
 					}
@@ -754,6 +754,15 @@ func isEphemeralTestMC() bool {
 
 func cleanClusterName(clusterName string) string {
 	return strings.TrimPrefix(clusterName, "teleport.giantswarm.io-")
+}
+
+// getHelmServiceAccountName returns the service account name to use for the HelmRelease.
+// Defaults to the appName if not explicitly set.
+func (s *suite) getHelmServiceAccountName() string {
+	if s.helmServiceAccountName != "" {
+		return s.helmServiceAccountName
+	}
+	return s.appName
 }
 
 // getHelmReleaseName returns the name to use for the HelmRelease CR.
