@@ -285,8 +285,11 @@ func buildHelmRelease(cfg HelmReleaseConfig) *helmv2.HelmRelease {
 }
 
 // CreateValuesSecret creates a Secret containing chart values for a HelmRelease.
+// It ensures the target namespace exists before creating the Secret.
 func CreateValuesSecret(ctx context.Context, name, namespace, values string) {
 	GinkgoHelper()
+
+	ensureNamespace(ctx, namespace)
 
 	secret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
