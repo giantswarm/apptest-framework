@@ -559,7 +559,7 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 						values := s.loadValues()
 						installName := s.getHelmReleaseName()
 
-						ctx, cancel := context.WithTimeout(state.GetContext(), 5*time.Minute)
+						ctx, cancel := context.WithTimeout(state.GetContext(), s.getHelmInstallTimeout())
 						defer cancel()
 
 						if values != "" {
@@ -617,7 +617,7 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 					values := s.loadValues()
 					installName := s.getHelmReleaseName()
 
-					ctx, cancel := context.WithTimeout(state.GetContext(), 5*time.Minute)
+					ctx, cancel := context.WithTimeout(state.GetContext(), s.getHelmInstallTimeout())
 					defer cancel()
 
 					if s.isUpgrade {
@@ -776,6 +776,15 @@ func (s *suite) getHelmReleaseName() string {
 		name = fmt.Sprintf("%s-%s", cluster.Name, name)
 	}
 	return name
+}
+
+// getHelmInstallTimeout returns the timeout to use for HelmRelease install/upgrade operations.
+// Defaults to 10 minutes if not explicitly set via WithHelmTimeout.
+func (s *suite) getHelmInstallTimeout() time.Duration {
+	if s.helmTimeout > 0 {
+		return s.helmTimeout
+	}
+	return 10 * time.Minute
 }
 
 // loadValues reads the values file and returns its content as a string.
