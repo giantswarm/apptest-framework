@@ -232,25 +232,27 @@ suite.New().
 | --- | --- |
 | `WithHelmRelease(bool)` | Enables HelmRelease mode. When `true`, creates a Flux `HelmRelease` CR instead of an `App` CR. |
 | `WithHelmSourceKind(SourceKind)` | Sets the source kind: `client.SourceKindOCIRepository` (default) or `client.SourceKindHelmRepository`. |
-| `WithHelmSourceName(string)` | Sets the name of the source reference (`OCIRepository` or `HelmRepository`). Required. |
+| `WithHelmSourceName(string)` | Sets the name of the source reference (`OCIRepository` or `HelmRepository`). Defaults to `appName`. |
 | `WithHelmSourceNamespace(string)` | Sets the namespace of the source reference. Defaults to the HelmRelease namespace. |
 | `WithHelmTargetNamespace(string)` | Sets the namespace where the Helm chart will be installed (`spec.targetNamespace`). |
 | `WithHelmStorageNamespace(string)` | Sets the namespace for Helm storage (`spec.storageNamespace`). |
 | `WithHelmReleaseName(string)` | Sets the Helm release name (`spec.releaseName`). Defaults to the HelmRelease resource name. |
-| `WithHelmTimeout(time.Duration)` | Sets the timeout for Helm operations (`spec.timeout`). |
+| `WithHelmTimeout(time.Duration)` | Sets the timeout for Helm operations (`spec.timeout`) and the install/upgrade step context deadline. Defaults to 10 minutes. |
 | `WithHelmRetries(int)` | Sets the number of retries for install/upgrade remediation. Defaults to 10. |
-| `WithHelmServiceAccountName(string)` | Sets the service account to impersonate when reconciling. Required by clusters with the `flux-multi-tenancy` Kyverno policy. |
+| `WithHelmServiceAccountName(string)` | Sets the service account to impersonate when reconciling. Defaults to `appName`. The service account is auto-created if it doesn't exist. |
 
 ### How It Works
 
 When HelmRelease mode is enabled, the framework will:
 
-1. Create a `Secret` containing chart values (from the values file) if values are provided.
-2. Create a `HelmRelease` CR referencing the specified source (OCIRepository or HelmRepository).
-3. Configure install/upgrade remediation with retries and rollback strategy.
-4. Wait for the HelmRelease `Ready` condition to become `True`.
-5. Run your test cases.
-6. Delete the `HelmRelease` and associated values `Secret` during cleanup.
+1. Ensure required namespaces exist (HelmRelease namespace, target namespace, storage namespace), creating them if needed.
+2. Ensure the service account exists, creating it if needed.
+3. Create a `Secret` containing chart values (from the values file) if values are provided.
+4. Create a `HelmRelease` CR referencing the specified source (OCIRepository or HelmRepository).
+5. Configure install/upgrade remediation with retries and rollback strategy.
+6. Wait for the HelmRelease `Ready` condition to become `True`.
+7. Run your test cases.
+8. Delete the `HelmRelease` and associated values `Secret` during cleanup.
 
 ### Upgrade Tests with HelmRelease
 
