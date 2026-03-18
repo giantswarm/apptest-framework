@@ -9,6 +9,7 @@ A test framework for helping with E2E testing of Giant Swarm managed Apps within
 - Handles test suite setup (using Ginkgo)
 - Supports both Management Cluster and Workload Cluster App testing
 - Handles workload cluster creation and deletion for workload cluster testing
+- Supports both Giant Swarm App CRs and Flux HelmRelease CRs for installing charts
 - Provides shared state across test cases
 - Provides hooks for pre-install, pre-upgrade and post-install steps
 
