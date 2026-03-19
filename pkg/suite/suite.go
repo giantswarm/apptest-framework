@@ -315,10 +315,12 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 			// Derive the provider from the first entry in providers so that
 			// release-based checks (e.g. IsDefaultApp) work for MC tests.
 			if len(s.providers) > 0 {
-				if cb, cbErr := clusterbuilder.GetClusterBuilderForContext(s.providers[0]); cbErr == nil {
-					// Build a dummy cluster app only to extract the resolved provider.
-					cluster.Provider = cb.NewClusterApp(cluster.Name, cluster.Organization.Name, nil).Provider
+				if len(s.providers) > 1 {
+					logger.Log("Warning: multiple providers defined in config.yaml but MC tests only use the first provider (%q); remaining providers will be ignored", s.providers[0])
 				}
+				cb, cbErr := clusterbuilder.GetClusterBuilderForContext(s.providers[0])
+				Expect(cbErr).NotTo(HaveOccurred(), "failed to resolve provider from config.yaml providers[0]=%q", s.providers[0])
+				cluster.Provider = cb.NewClusterApp(cluster.Name, cluster.Organization.Name, nil).Provider
 			}
 		} else {
 			cb, err := clusterbuilder.GetClusterBuilderForContext(mcContext)
