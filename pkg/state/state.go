@@ -5,8 +5,8 @@ import (
 	"sync"
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
-	"github.com/giantswarm/clustertest/v3"
-	"github.com/giantswarm/clustertest/v3/pkg/application"
+	"github.com/giantswarm/clustertest/v4"
+	"github.com/giantswarm/clustertest/v4/pkg/application"
 )
 
 var lock = &sync.Mutex{}

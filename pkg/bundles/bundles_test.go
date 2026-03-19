@@ -3,7 +3,7 @@ package bundles
 import (
 	"testing"
 
-	"github.com/giantswarm/clustertest/v3/pkg/application"
+	"github.com/giantswarm/clustertest/v4/pkg/application"
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
 

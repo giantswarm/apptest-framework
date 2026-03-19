@@ -7,8 +7,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.32.12
 	github.com/fluxcd/helm-controller/api v1.5.3
 	github.com/giantswarm/apiextensions-application v0.6.2
-	github.com/giantswarm/cluster-standup-teardown/v4 v4.1.2
-	github.com/giantswarm/clustertest/v3 v3.3.0
+	github.com/giantswarm/cluster-standup-teardown/v5 v5.0.0
+	github.com/giantswarm/clustertest/v4 v4.0.0
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
 	golang.org/x/text v0.35.0
@@ -166,7 +166,7 @@ require (
 	gomodules.xyz/jsonpatch/v2 v2.5.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260311181403-84a4fc48630c // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260311181403-84a4fc48630c // indirect
-	google.golang.org/grpc v1.79.2 // indirect
+	google.golang.org/grpc v1.79.3 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
@@ -183,7 +183,7 @@ require (
 	k8s.io/kubectl v0.35.2 // indirect
 	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2 // indirect
 	oras.land/oras-go/v2 v2.6.0 // indirect
-	sigs.k8s.io/cluster-api v1.10.10 // indirect
+	sigs.k8s.io/cluster-api v1.12.3 // indirect
 	sigs.k8s.io/e2e-framework v0.6.0 // indirect
 	sigs.k8s.io/gateway-api v1.5.0 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
