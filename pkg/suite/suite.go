@@ -12,6 +12,7 @@ import (
 	. "github.com/onsi/ginkgo/v2" //nolint:staticcheck
 	. "github.com/onsi/gomega"    //nolint:staticcheck
 
+	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	"github.com/giantswarm/apiextensions-application/api/v1alpha1"
 	"github.com/giantswarm/cluster-standup-teardown/v4/pkg/clusterbuilder"
 	"github.com/giantswarm/cluster-standup-teardown/v4/pkg/standup"
@@ -54,6 +55,18 @@ type suite struct {
 	inBundleAppOverrideType bundles.AppNameOverrideType
 	isDefaultApp            bool
 	bundleValuesConfigMap   string
+
+	// HelmRelease mode
+	useHelmRelease         bool
+	helmSourceKind         client.SourceKind
+	helmSourceName         string
+	helmSourceNamespace    string
+	helmTargetNamespace    string
+	helmStorageNamespace   string
+	helmReleaseName        string
+	helmTimeout            time.Duration
+	helmRetries            *int
+	helmServiceAccountName string
 
 	afterClusterReady func()
 	beforeUpgrade     func()
@@ -139,6 +152,81 @@ func (s *suite) InAppBundle(appBundleName string) *suite {
 // If not set, it defaults to AppNameOverrideAuto which auto-detects based on the bundle app name.
 func (s *suite) WithBundleOverrideType(overrideType bundles.AppNameOverrideType) *suite {
 	s.inBundleAppOverrideType = overrideType
+	return s
+}
+
+// WithHelmRelease configures the suite to use a Flux HelmRelease CR instead of a Giant Swarm App CR.
+// When enabled, the framework will create a HelmRelease resource referencing the configured
+// source and chart, and wait for the Ready condition instead of the App deployed status.
+// Defaults to using an OCIRepository source — use WithHelmSourceKind to change.
+func (s *suite) WithHelmRelease(useHelmRelease bool) *suite {
+	s.useHelmRelease = useHelmRelease
+	return s
+}
+
+// WithHelmSourceKind sets the kind of source reference for HelmRelease mode.
+// Use client.SourceKindOCIRepository (default) or client.SourceKindHelmRepository.
+func (s *suite) WithHelmSourceKind(kind client.SourceKind) *suite {
+	s.helmSourceKind = kind
+	return s
+}
+
+// WithHelmSourceName sets the name of the source reference (OCIRepository or HelmRepository)
+// for HelmRelease mode. This must match an existing source CR in the cluster.
+func (s *suite) WithHelmSourceName(name string) *suite {
+	s.helmSourceName = name
+	return s
+}
+
+// WithHelmSourceNamespace sets the namespace of the source reference.
+// If not set, defaults to the HelmRelease namespace.
+func (s *suite) WithHelmSourceNamespace(namespace string) *suite {
+	s.helmSourceNamespace = namespace
+	return s
+}
+
+// WithHelmTargetNamespace sets the target namespace where the Helm chart will be installed.
+// This maps to the HelmRelease spec.targetNamespace field.
+// If not set, the chart is installed in the HelmRelease's own namespace.
+func (s *suite) WithHelmTargetNamespace(namespace string) *suite {
+	s.helmTargetNamespace = namespace
+	return s
+}
+
+// WithHelmStorageNamespace sets the namespace used for Helm storage.
+// This maps to the HelmRelease spec.storageNamespace field.
+func (s *suite) WithHelmStorageNamespace(namespace string) *suite {
+	s.helmStorageNamespace = namespace
+	return s
+}
+
+// WithHelmReleaseName sets the Helm release name.
+// This maps to the HelmRelease spec.releaseName field.
+// If not set, defaults to the HelmRelease resource name.
+func (s *suite) WithHelmReleaseName(name string) *suite {
+	s.helmReleaseName = name
+	return s
+}
+
+// WithHelmTimeout sets the timeout for Helm operations (install/upgrade).
+// If not set, defaults to the Flux default (5m).
+func (s *suite) WithHelmTimeout(timeout time.Duration) *suite {
+	s.helmTimeout = timeout
+	return s
+}
+
+// WithHelmRetries sets the number of retries for install/upgrade remediation.
+// If not set, defaults to 10.
+func (s *suite) WithHelmRetries(retries int) *suite {
+	s.helmRetries = &retries
+	return s
+}
+
+// WithHelmServiceAccountName sets the Kubernetes service account to impersonate
+// when reconciling the HelmRelease. If not set, defaults to the appName from config.
+// The service account is auto-created if it doesn't exist.
+func (s *suite) WithHelmServiceAccountName(name string) *suite {
+	s.helmServiceAccountName = name
 	return s
 }
 
@@ -410,10 +498,17 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 				return
 			}
 
-			app := getInstallApp()
-			logger.Log("Uninstalling App %s (%s)", app.AppName, app.InstallName)
-			err := state.GetFramework().MC().DeleteApp(state.GetContext(), *app)
-			Expect(err).NotTo(HaveOccurred())
+			if s.useHelmRelease {
+				installName := s.getHelmReleaseName()
+				logger.Log("Uninstalling HelmRelease %s/%s", s.installNamespace, installName)
+				err := client.DeleteHelmRelease(state.GetContext(), installName, s.installNamespace)
+				Expect(err).NotTo(HaveOccurred())
+			} else {
+				app := getInstallApp()
+				logger.Log("Uninstalling App %s (%s)", app.AppName, app.InstallName)
+				err := state.GetFramework().MC().DeleteApp(state.GetContext(), *app)
+				Expect(err).NotTo(HaveOccurred())
+			}
 		})
 	})
 
@@ -428,19 +523,34 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 				return
 			}
 
-			appCR := getInstallApp()
+			if s.useHelmRelease {
+				installName := s.getHelmReleaseName()
+				logger.Log("Checking that HelmRelease %s isn't already installed", installName)
 
-			logger.Log("Checking that App %s isn't already installed", appCR.AppName)
+				hr := &helmv2.HelmRelease{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      installName,
+						Namespace: s.installNamespace,
+					},
+				}
+				err := state.GetFramework().MC().Get(state.GetContext(), cr.ObjectKeyFromObject(hr), hr)
+				Expect(err).ToNot(BeNil())
+				Expect(errors.IsNotFound(err)).To(BeTrue())
+			} else {
+				appCR := getInstallApp()
 
-			app := &v1alpha1.App{
-				ObjectMeta: v1.ObjectMeta{
-					Name:      appCR.InstallName,
-					Namespace: appCR.GetNamespace(),
-				},
+				logger.Log("Checking that App %s isn't already installed", appCR.AppName)
+
+				app := &v1alpha1.App{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      appCR.InstallName,
+						Namespace: appCR.GetNamespace(),
+					},
+				}
+				err := state.GetFramework().MC().Get(state.GetContext(), cr.ObjectKeyFromObject(app), app)
+				Expect(err).ToNot(BeNil())
+				Expect(errors.IsNotFound(err)).To(BeTrue())
 			}
-			err := state.GetFramework().MC().Get(state.GetContext(), cr.ObjectKeyFromObject(app), app)
-			Expect(err).ToNot(BeNil())
-			Expect(errors.IsNotFound(err)).To(BeTrue())
 		})
 
 		if s.isUpgrade {
@@ -451,24 +561,57 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 						return
 					}
 
-					var app *application.Application
-					if s.inBundleApp != "" {
-						cluster := state.GetCluster()
-						app = application.New(fmt.Sprintf("%s-%s", cluster.Name, s.inBundleApp), s.inBundleApp).
-							WithCatalog(s.appCatalog).
-							WithOrganization(*cluster.Organization).
-							WithClusterName(cluster.Name).
-							WithVersion("latest").
-							WithInstallNamespace(cluster.Organization.GetNamespace()).
-							MustWithValues(fmt.Sprintf("clusterID: %s", cluster.Name), &application.TemplateValues{}).
-							WithInCluster(true)
-					} else {
-						app = state.GetApplication().WithVersion("latest")
-					}
+					if s.useHelmRelease {
+						latestVersion, err := application.GetLatestAppVersion(s.repoName)
+						Expect(err).NotTo(HaveOccurred())
+						latestVersion = strings.TrimPrefix(latestVersion, "v")
 
-					ctx, cancel := context.WithTimeout(state.GetContext(), 5*time.Minute)
-					defer cancel()
-					client.InstallApp(ctx, app)
+						values := s.loadValues()
+						installName := s.getHelmReleaseName()
+
+						ctx, cancel := context.WithTimeout(state.GetContext(), s.getHelmInstallTimeout())
+						defer cancel()
+
+						if values != "" {
+							client.CreateValuesSecret(ctx, installName, s.installNamespace, values)
+						}
+
+						client.InstallHelmRelease(ctx, client.HelmReleaseConfig{
+							Name:               installName,
+							Namespace:          s.installNamespace,
+							TargetNamespace:    s.helmTargetNamespace,
+							ChartName:          s.appName,
+							ChartVersion:       latestVersion,
+							SourceKind:         s.helmSourceKind,
+							SourceName:         s.helmSourceName,
+							SourceNamespace:    s.helmSourceNamespace,
+							StorageNamespace:   s.helmStorageNamespace,
+							ReleaseName:        s.helmReleaseName,
+							Timeout:            s.helmTimeout,
+							Retries:            s.helmRetries,
+							ServiceAccountName: s.getHelmServiceAccountName(),
+							Values:             values,
+						})
+					} else {
+						var app *application.Application
+						if s.inBundleApp != "" {
+							cluster := state.GetCluster()
+							app = application.New(fmt.Sprintf("%s-%s", cluster.Name, s.inBundleApp), s.inBundleApp).
+								WithCatalog(s.appCatalog).
+								WithOrganization(*cluster.Organization).
+								WithClusterName(cluster.Name).
+								WithVersion("latest").
+								WithInstallNamespace(cluster.Organization.GetNamespace()).
+								MustWithValues(fmt.Sprintf("clusterID: %s", cluster.Name), &application.TemplateValues{}).
+								WithInCluster(true)
+						} else {
+							app = state.GetApplication().WithVersion("latest")
+						}
+
+						ctx, cancel := context.WithTimeout(state.GetContext(), 5*time.Minute)
+						defer cancel()
+						client.InstallApp(ctx, app)
+					}
 				})
 			})
 
@@ -479,7 +622,48 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 
 		Describe("Install app", func() {
 			It("Install the application with the version to test", func() {
-				if s.isDefaultApp && s.isUpgrade {
+				if s.useHelmRelease {
+					appVersion := os.Getenv("E2E_APP_VERSION")
+					values := s.loadValues()
+					installName := s.getHelmReleaseName()
+
+					ctx, cancel := context.WithTimeout(state.GetContext(), s.getHelmInstallTimeout())
+					defer cancel()
+
+					if s.isUpgrade {
+						// Upgrade: update the existing HelmRelease version
+						client.UpdateHelmReleaseVersion(ctx, installName, s.installNamespace, appVersion)
+					} else {
+						if values != "" {
+							client.CreateValuesSecret(ctx, installName, s.installNamespace, values)
+						}
+
+						client.InstallHelmRelease(ctx, client.HelmReleaseConfig{
+							Name:               installName,
+							Namespace:          s.installNamespace,
+							TargetNamespace:    s.helmTargetNamespace,
+							ChartName:          s.appName,
+							ChartVersion:       appVersion,
+							SourceKind:         s.helmSourceKind,
+							SourceName:         s.helmSourceName,
+							SourceNamespace:    s.helmSourceNamespace,
+							StorageNamespace:   s.helmStorageNamespace,
+							ReleaseName:        s.helmReleaseName,
+							Timeout:            s.helmTimeout,
+							Retries:            s.helmRetries,
+							ServiceAccountName: s.getHelmServiceAccountName(),
+							Values:             values,
+						})
+					}
+
+					// Wait for the HelmRelease to become ready with the expected version
+					Eventually(func() (bool, error) {
+						return client.IsHelmReleaseReady(state.GetContext(), installName, s.installNamespace)
+					}).
+						WithContext(ctx).
+						WithPolling(5 * time.Second).
+						Should(BeTrue())
+				} else if s.isDefaultApp && s.isUpgrade {
 					// If we're testing the upgrade of a default app we need to do so via a release upgrade
 					cluster := state.GetCluster()
 					app := state.GetApplication()
@@ -580,4 +764,49 @@ func isEphemeralTestMC() bool {
 
 func cleanClusterName(clusterName string) string {
 	return strings.TrimPrefix(clusterName, "teleport.giantswarm.io-")
+}
+
+// getHelmServiceAccountName returns the service account name to use for the HelmRelease.
+// Defaults to the appName if not explicitly set.
+func (s *suite) getHelmServiceAccountName() string {
+	if s.helmServiceAccountName != "" {
+		return s.helmServiceAccountName
+	}
+	return s.appName
+}
+
+// getHelmReleaseName returns the name to use for the HelmRelease CR.
+func (s *suite) getHelmReleaseName() string {
+	name := s.installName
+	if name == "" {
+		name = s.appName
+	}
+	cluster := state.GetCluster()
+	if cluster != nil && !s.isMCTest {
+		name = fmt.Sprintf("%s-%s", cluster.Name, name)
+	}
+	return name
+}
+
+// getHelmInstallTimeout returns the timeout to use for HelmRelease install/upgrade operations.
+// Defaults to 10 minutes if not explicitly set via WithHelmTimeout.
+func (s *suite) getHelmInstallTimeout() time.Duration {
+	if s.helmTimeout > 0 {
+		return s.helmTimeout
+	}
+	return 10 * time.Minute
+}
+
+// loadValues reads the values file and returns its content as a string.
+// Returns an empty string if the file does not exist.
+func (s *suite) loadValues() string {
+	valuesPath := s.valuesFile
+	if valuesPath == "" {
+		return ""
+	}
+	content, err := os.ReadFile(valuesPath) // #nosec G304
+	if err != nil {
+		return ""
+	}
+	return string(content)
 }
