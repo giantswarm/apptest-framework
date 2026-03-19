@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix `InAppBundle` support for MC tests: populate the provider on the MC cluster object from `config.yaml` `providers` so that release-based checks like `IsDefaultApp` work correctly.
+
 ## [3.3.0] - 2026-03-18
 
 ### Added
