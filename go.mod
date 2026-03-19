@@ -7,8 +7,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.32.12
 	github.com/fluxcd/helm-controller/api v1.5.3
 	github.com/giantswarm/apiextensions-application v0.6.2
-	github.com/giantswarm/cluster-standup-teardown/v4 v4.1.2
-	github.com/giantswarm/clustertest/v3 v3.3.0
+	github.com/giantswarm/cluster-standup-teardown/v5 v5.0.0
+	github.com/giantswarm/clustertest/v4 v4.0.0
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
 	golang.org/x/text v0.35.0
@@ -183,7 +183,7 @@ require (
 	k8s.io/kubectl v0.35.2 // indirect
 	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2 // indirect
 	oras.land/oras-go/v2 v2.6.0 // indirect
-	sigs.k8s.io/cluster-api v1.10.10 // indirect
+	sigs.k8s.io/cluster-api v1.12.3 // indirect
 	sigs.k8s.io/e2e-framework v0.6.0 // indirect
 	sigs.k8s.io/gateway-api v1.5.0 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
