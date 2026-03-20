@@ -106,6 +106,8 @@ github.com/fxamacker/cbor/v2 v2.9.0 h1:NpKPmjDBgUfBms6tr6JZkTHtfFGcMKsw3eGcmD/sa
 github.com/fxamacker/cbor/v2 v2.9.0/go.mod h1:vM4b+DJCtHn+zz7h3FFp/hDAI9WNWCsZj23V5ytsSxQ=
 github.com/giantswarm/apiextensions-application v0.6.2 h1:XL86OrpprWl5Wp38EUvUXt3ztTo25+V63oDVlFwDpNg=
 github.com/giantswarm/apiextensions-application v0.6.2/go.mod h1:8ylqSmDSzFblCppRQTFo8v9s/F6MX6RTusVVoDDfWso=
+github.com/giantswarm/apptest-framework/v4 v4.0.0 h1:bV2tbVSJDge9EnwFv7AR6iDGX/+RUToGgRBvdGjyPhA=
+github.com/giantswarm/apptest-framework/v4 v4.0.0/go.mod h1:G/bCVV4/BGPEs48qR3+8U3O7Cjcrb56VMj2Fa1GvnwI=
 github.com/giantswarm/cluster-standup-teardown/v5 v5.0.0 h1:vd0doplu/KAqsZa0Inb7xfPpKdvKWCNmZ91lNc/bEgg=
 github.com/giantswarm/cluster-standup-teardown/v5 v5.0.0/go.mod h1:sqqGZKvu2X0ahhI5GZBap3WseNfCFi00kuvrEFuL6kE=
 github.com/giantswarm/clustertest/v4 v4.0.0 h1:DjrH8cwtsdpDlrNO3rKmcSXCmNJCiO9/3PIazVVIFg0=
