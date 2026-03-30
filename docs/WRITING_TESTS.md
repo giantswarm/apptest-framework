@@ -240,19 +240,21 @@ suite.New().
 | `WithHelmTimeout(time.Duration)` | Sets the timeout for Helm operations (`spec.timeout`) and the install/upgrade step context deadline. Defaults to 10 minutes. |
 | `WithHelmRetries(int)` | Sets the number of retries for install/upgrade remediation. Defaults to 10. |
 | `WithHelmServiceAccountName(string)` | Sets the service account to impersonate when reconciling. Defaults to `appName`. The service account is auto-created if it doesn't exist. |
+| `WithHelmKubeConfigSecretName(string)` | Sets the kubeconfig secret name for remote cluster access. Defaults to `{clusterName}-kubeconfig` for workload cluster tests. |
 
 ### How It Works
 
 When HelmRelease mode is enabled, the framework will:
 
-1. Ensure required namespaces exist (HelmRelease namespace, target namespace, storage namespace), creating them if needed.
-2. Ensure the service account exists, creating it if needed.
-3. Create a `Secret` containing chart values (from the values file) if values are provided.
-4. Create a `HelmRelease` CR referencing the specified source (OCIRepository or HelmRepository).
-5. Configure install/upgrade remediation with retries and rollback strategy.
-6. Wait for the HelmRelease `Ready` condition to become `True`.
-7. Run your test cases.
-8. Delete the `HelmRelease` and associated values `Secret` during cleanup.
+1. Auto-configure defaults for workload cluster tests (namespace to cluster org namespace, kubeconfig secret to `{clusterName}-kubeconfig`).
+2. Ensure required namespaces exist (HelmRelease namespace, target namespace, storage namespace), creating them if needed.
+3. Ensure the service account exists, creating it if needed.
+4. Create a `Secret` containing chart values (from the values file) if values are provided.
+5. Create a `HelmRelease` CR referencing the specified source (OCIRepository or HelmRepository).
+6. Configure install/upgrade remediation with retries and rollback strategy.
+7. Wait for the HelmRelease `Ready` condition to become `True`.
+8. Run your test cases.
+9. Delete the `HelmRelease` and associated values `Secret` during cleanup.
 
 ### Upgrade Tests with HelmRelease
 

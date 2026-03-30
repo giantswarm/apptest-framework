@@ -56,16 +56,17 @@ type suite struct {
 	bundleValuesConfigMap   string
 
 	// HelmRelease mode
-	useHelmRelease         bool
-	helmSourceKind         client.SourceKind
-	helmSourceName         string
-	helmSourceNamespace    string
-	helmTargetNamespace    string
-	helmStorageNamespace   string
-	helmReleaseName        string
-	helmTimeout            time.Duration
-	helmRetries            *int
-	helmServiceAccountName string
+	useHelmRelease           bool
+	helmSourceKind           client.SourceKind
+	helmSourceName           string
+	helmSourceNamespace      string
+	helmTargetNamespace      string
+	helmStorageNamespace     string
+	helmReleaseName          string
+	helmTimeout              time.Duration
+	helmRetries              *int
+	helmServiceAccountName   string
+	helmKubeConfigSecretName string
 
 	afterClusterReady func()
 	beforeUpgrade     func()
@@ -225,6 +226,13 @@ func (s *suite) WithHelmRetries(retries int) *suite {
 // The service account is auto-created if it doesn't exist.
 func (s *suite) WithHelmServiceAccountName(name string) *suite {
 	s.helmServiceAccountName = name
+	return s
+}
+
+// WithHelmKubeConfigSecretName sets the kubeconfig secret name for remote cluster access.
+// If not set, automatically configured as "{clusterName}-kubeconfig" for WC tests.
+func (s *suite) WithHelmKubeConfigSecretName(name string) *suite {
+	s.helmKubeConfigSecretName = name
 	return s
 }
 
@@ -490,8 +498,9 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 
 			if s.useHelmRelease {
 				installName := s.getHelmReleaseName()
-				logger.Log("Uninstalling HelmRelease %s/%s", s.installNamespace, installName)
-				err := client.DeleteHelmRelease(state.GetContext(), installName, s.installNamespace)
+				cfg := s.buildHelmReleaseConfig(installName, "")
+				logger.Log("Uninstalling HelmRelease %s/%s", cfg.Namespace, installName)
+				err := client.DeleteHelmRelease(state.GetContext(), installName, cfg.Namespace)
 				Expect(err).NotTo(HaveOccurred())
 			} else {
 				app := getInstallApp()
@@ -515,12 +524,13 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 
 			if s.useHelmRelease {
 				installName := s.getHelmReleaseName()
+				cfg := s.buildHelmReleaseConfig(installName, "")
 				logger.Log("Checking that HelmRelease %s isn't already installed", installName)
 
 				hr := &helmv2.HelmRelease{
 					ObjectMeta: v1.ObjectMeta{
 						Name:      installName,
-						Namespace: s.installNamespace,
+						Namespace: cfg.Namespace,
 					},
 				}
 				err := state.GetFramework().MC().Get(state.GetContext(), cr.ObjectKeyFromObject(hr), hr)
@@ -562,26 +572,12 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 						ctx, cancel := context.WithTimeout(state.GetContext(), s.getHelmInstallTimeout())
 						defer cancel()
 
+						cfg := s.buildHelmReleaseConfig(installName, latestVersion)
 						if values != "" {
-							client.CreateValuesSecret(ctx, installName, s.installNamespace, values)
+							client.CreateValuesSecret(ctx, installName, cfg.Namespace, values)
 						}
 
-						client.InstallHelmRelease(ctx, client.HelmReleaseConfig{
-							Name:               installName,
-							Namespace:          s.installNamespace,
-							TargetNamespace:    s.helmTargetNamespace,
-							ChartName:          s.appName,
-							ChartVersion:       latestVersion,
-							SourceKind:         s.helmSourceKind,
-							SourceName:         s.helmSourceName,
-							SourceNamespace:    s.helmSourceNamespace,
-							StorageNamespace:   s.helmStorageNamespace,
-							ReleaseName:        s.helmReleaseName,
-							Timeout:            s.helmTimeout,
-							Retries:            s.helmRetries,
-							ServiceAccountName: s.getHelmServiceAccountName(),
-							Values:             values,
-						})
+						client.InstallHelmRelease(ctx, cfg)
 					} else {
 						var app *application.Application
 						if s.inBundleApp != "" {
@@ -620,30 +616,17 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 					ctx, cancel := context.WithTimeout(state.GetContext(), s.getHelmInstallTimeout())
 					defer cancel()
 
+					cfg := s.buildHelmReleaseConfig(installName, appVersion)
+
 					if s.isUpgrade {
 						// Upgrade: update the existing HelmRelease version
-						client.UpdateHelmReleaseVersion(ctx, installName, s.installNamespace, appVersion)
+						client.UpdateHelmReleaseVersion(ctx, installName, cfg.Namespace, appVersion)
 					} else {
 						if values != "" {
-							client.CreateValuesSecret(ctx, installName, s.installNamespace, values)
+							client.CreateValuesSecret(ctx, installName, cfg.Namespace, values)
 						}
 
-						client.InstallHelmRelease(ctx, client.HelmReleaseConfig{
-							Name:               installName,
-							Namespace:          s.installNamespace,
-							TargetNamespace:    s.helmTargetNamespace,
-							ChartName:          s.appName,
-							ChartVersion:       appVersion,
-							SourceKind:         s.helmSourceKind,
-							SourceName:         s.helmSourceName,
-							SourceNamespace:    s.helmSourceNamespace,
-							StorageNamespace:   s.helmStorageNamespace,
-							ReleaseName:        s.helmReleaseName,
-							Timeout:            s.helmTimeout,
-							Retries:            s.helmRetries,
-							ServiceAccountName: s.getHelmServiceAccountName(),
-							Values:             values,
-						})
+						client.InstallHelmRelease(ctx, cfg)
 					}
 
 					// Wait for the HelmRelease to become ready with the expected version
@@ -799,4 +782,46 @@ func (s *suite) loadValues() string {
 		return ""
 	}
 	return string(content)
+}
+
+// buildHelmReleaseConfig constructs a HelmReleaseConfig from suite settings,
+// applying smart defaults for WC deployments.
+func (s *suite) buildHelmReleaseConfig(installName, chartVersion string) client.HelmReleaseConfig {
+	cluster := state.GetCluster()
+	namespace := s.installNamespace
+	sourceNamespace := s.helmSourceNamespace
+	kubeConfigSecret := s.helmKubeConfigSecretName
+
+	// Auto-configure for WC HelmRelease tests
+	if s.useHelmRelease && !s.isMCTest {
+		// Use cluster org namespace if default
+		if namespace == "default" {
+			namespace = cluster.Organization.GetNamespace()
+			logger.Log("Auto-setting HelmRelease namespace to cluster org namespace: %s", namespace)
+		}
+
+		// Auto-set kubeconfig secret for WC access
+		if kubeConfigSecret == "" {
+			kubeConfigSecret = fmt.Sprintf("%s-kubeconfig", cluster.Name)
+			logger.Log("Auto-setting kubeconfig secret: %s", kubeConfigSecret)
+		}
+	}
+
+	return client.HelmReleaseConfig{
+		Name:                 installName,
+		Namespace:            namespace,
+		TargetNamespace:      s.helmTargetNamespace,
+		StorageNamespace:     s.helmStorageNamespace,
+		ReleaseName:          s.helmReleaseName,
+		ChartName:            s.appName,
+		ChartVersion:         chartVersion,
+		SourceKind:           s.helmSourceKind,
+		SourceName:           s.helmSourceName,
+		SourceNamespace:      sourceNamespace,
+		Timeout:              s.helmTimeout,
+		Retries:              s.helmRetries,
+		ServiceAccountName:   s.getHelmServiceAccountName(),
+		KubeConfigSecretName: kubeConfigSecret,
+		Values:               s.loadValues(),
+	}
 }

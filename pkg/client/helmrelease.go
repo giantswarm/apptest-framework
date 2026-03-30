@@ -6,6 +6,7 @@ import (
 	"time"
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
+	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/giantswarm/clustertest/v4/pkg/logger"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -65,6 +66,9 @@ type HelmReleaseConfig struct {
 	// ServiceAccountName is the Kubernetes service account to impersonate when reconciling.
 	// Required by clusters with the flux-multi-tenancy Kyverno policy.
 	ServiceAccountName string
+	// KubeConfigSecretName is the name of the secret containing kubeconfig for remote cluster access.
+	// Required when deploying to a workload cluster from the management cluster.
+	KubeConfigSecretName string
 }
 
 // InstallHelmRelease creates a HelmRelease CR and waits for it to become ready.
@@ -279,6 +283,14 @@ func buildHelmRelease(cfg HelmReleaseConfig) *helmv2.HelmRelease {
 			Kind: "Secret",
 			Name: fmt.Sprintf("%s-values", cfg.Name),
 		})
+	}
+
+	if cfg.KubeConfigSecretName != "" {
+		hr.Spec.KubeConfig = &meta.KubeConfigReference{
+			SecretRef: &meta.SecretKeyReference{
+				Name: cfg.KubeConfigSecretName,
+			},
+		}
 	}
 
 	return hr

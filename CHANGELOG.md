@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Auto-configuration for workload cluster HelmRelease tests: automatically sets namespace to cluster organization namespace and kubeconfig secret to `{clusterName}-kubeconfig` pattern.
+- Add `WithHelmKubeConfigSecretName()` builder method for specifying kubeconfig secret for remote cluster access.
+
 ## [4.0.0] - 2026-03-19
 
 ### Changed
