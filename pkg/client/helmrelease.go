@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
@@ -11,6 +12,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	cr "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -28,6 +30,9 @@ const (
 	SourceKindHelmRepository SourceKind = "HelmRepository"
 	// SourceKindOCIRepository uses spec.chartRef with an OCIRepository reference.
 	SourceKindOCIRepository SourceKind = "OCIRepository"
+
+	// DefaultGiantSwarmHelmRepositoryURL is the default OCI registry for Giant Swarm Helm charts.
+	DefaultGiantSwarmHelmRepositoryURL = "oci://gsoci.azurecr.io/charts/giantswarm"
 )
 
 // HelmReleaseConfig holds the configuration needed to create a HelmRelease CR.
@@ -55,6 +60,12 @@ type HelmReleaseConfig struct {
 	// SourceNamespace is the namespace of the source reference.
 	// If empty, defaults to the HelmRelease namespace.
 	SourceNamespace string
+	// SourceURL is the URL of the source to create automatically.
+	// For SourceKindHelmRepository: an OCI URL ("oci://registry/path") or HTTPS URL.
+	// For SourceKindOCIRepository: an OCI URL ("oci://registry/path/chart").
+	// When set, the framework creates the source CR before installing the HelmRelease.
+	// If empty, the source CR must already exist in the cluster.
+	SourceURL string
 	// Values is the raw values YAML to pass to the chart.
 	Values string
 	// Interval is the reconciliation interval. Defaults to 5m.
@@ -86,6 +97,9 @@ func InstallHelmRelease(ctx context.Context, cfg HelmReleaseConfig) {
 		cfg.SourceName = cfg.ChartName
 	}
 
+	// Ensure the source CR exists if a URL was provided
+	ensureHelmSource(ctx, cfg)
+
 	// Ensure required namespaces exist
 	ensureNamespace(ctx, cfg.Namespace)
 	if cfg.TargetNamespace != "" {
@@ -98,6 +112,10 @@ func InstallHelmRelease(ctx context.Context, cfg HelmReleaseConfig) {
 	// Ensure the service account exists
 	if cfg.ServiceAccountName != "" {
 		ensureServiceAccount(ctx, cfg.ServiceAccountName, cfg.Namespace)
+	}
+
+	if cfg.Values != "" {
+		createValuesSecret(ctx, cfg.Name, cfg.Namespace, cfg.Values)
 	}
 
 	hr := buildHelmRelease(cfg)
@@ -188,6 +206,184 @@ func DeleteHelmRelease(ctx context.Context, name, namespace string) error {
 	}
 
 	return nil
+}
+
+// DeleteHelmSource deletes the source CR (HelmRepository or OCIRepository) created by ensureHelmSource.
+// It is a no-op if SourceURL is empty (i.e. the source was pre-existing and not created by the framework).
+func DeleteHelmSource(ctx context.Context, cfg HelmReleaseConfig) error {
+	if cfg.SourceURL == "" {
+		return nil
+	}
+
+	sourceName := cfg.SourceName
+	if sourceName == "" {
+		sourceName = cfg.ChartName
+	}
+	sourceNamespace := cfg.SourceNamespace
+	if sourceNamespace == "" {
+		sourceNamespace = cfg.Namespace
+	}
+
+	sourceKind := cfg.SourceKind
+	if sourceKind == "" {
+		sourceKind = SourceKindOCIRepository
+	}
+
+	var obj *unstructured.Unstructured
+	switch sourceKind {
+	case SourceKindHelmRepository:
+		obj = &unstructured.Unstructured{}
+		obj.SetAPIVersion("source.toolkit.fluxcd.io/v1")
+		obj.SetKind("HelmRepository")
+	case SourceKindOCIRepository:
+		obj = &unstructured.Unstructured{}
+		obj.SetAPIVersion("source.toolkit.fluxcd.io/v1beta2")
+		obj.SetKind("OCIRepository")
+	default:
+		return nil
+	}
+
+	obj.SetName(sourceName)
+	obj.SetNamespace(sourceNamespace)
+
+	logger.Log("Deleting %s %s/%s", sourceKind, sourceNamespace, sourceName)
+	err := state.GetFramework().MC().Delete(ctx, obj)
+	if err != nil && !errors.IsNotFound(err) {
+		return fmt.Errorf("deleting %s %s/%s: %w", sourceKind, sourceNamespace, sourceName, err)
+	}
+	return nil
+}
+
+// ensureHelmSource creates the source CR (HelmRepository or OCIRepository) if SourceURL is set.
+// For SourceKindHelmRepository with no SourceURL, defaults to DefaultGiantSwarmHelmRepositoryURL.
+// If the source already exists it is left unchanged.
+func ensureHelmSource(ctx context.Context, cfg HelmReleaseConfig) {
+	GinkgoHelper()
+
+	sourceKind := cfg.SourceKind
+	if sourceKind == "" {
+		sourceKind = SourceKindOCIRepository
+	}
+
+	sourceURL := cfg.SourceURL
+	if sourceURL == "" {
+		switch sourceKind {
+		case SourceKindHelmRepository:
+			sourceURL = DefaultGiantSwarmHelmRepositoryURL
+		case SourceKindOCIRepository:
+			chartName := cfg.ChartName
+			if chartName != "" {
+				sourceURL = DefaultGiantSwarmHelmRepositoryURL + "/" + chartName
+			}
+		}
+	}
+
+	if sourceURL == "" {
+		return
+	}
+
+	sourceName := cfg.SourceName
+	if sourceName == "" {
+		sourceName = cfg.ChartName
+	}
+	sourceNamespace := cfg.SourceNamespace
+	if sourceNamespace == "" {
+		sourceNamespace = cfg.Namespace
+	}
+
+	switch sourceKind {
+	case SourceKindHelmRepository:
+		ensureHelmRepository(ctx, sourceName, sourceNamespace, sourceURL)
+	case SourceKindOCIRepository:
+		ensureOCIRepository(ctx, sourceName, sourceNamespace, sourceURL, cfg.ChartVersion)
+	}
+}
+
+// ensureHelmRepository creates a HelmRepository if it doesn't already exist.
+// For OCI-hosted Helm charts, pass an "oci://" URL; for HTTP/HTTPS catalogs pass an https URL.
+func ensureHelmRepository(ctx context.Context, name, namespace, url string) {
+	GinkgoHelper()
+
+	repoType := "default"
+	if strings.HasPrefix(url, "oci://") {
+		repoType = "oci"
+	}
+
+	obj := &unstructured.Unstructured{
+		Object: map[string]any{
+			"apiVersion": "source.toolkit.fluxcd.io/v1",
+			"kind":       "HelmRepository",
+			"metadata": map[string]any{
+				"name":      name,
+				"namespace": namespace,
+			},
+			"spec": map[string]any{
+				"type":     repoType,
+				"url":      url,
+				"interval": "5m",
+			},
+		},
+	}
+
+	logger.Log("Ensuring HelmRepository %s/%s (url: %s)", namespace, name, url)
+	err := state.GetFramework().MC().Create(ctx, obj)
+	if err != nil && !errors.IsAlreadyExists(err) {
+		Expect(err).NotTo(HaveOccurred())
+	}
+}
+
+// ensureOCIRepository creates an OCIRepository if it doesn't already exist.
+// The tag is set to chartVersion; pass an empty chartVersion to use "latest".
+func ensureOCIRepository(ctx context.Context, name, namespace, url, tag string) {
+	GinkgoHelper()
+
+	if tag == "" {
+		tag = "latest"
+	}
+
+	obj := &unstructured.Unstructured{
+		Object: map[string]any{
+			"apiVersion": "source.toolkit.fluxcd.io/v1beta2",
+			"kind":       "OCIRepository",
+			"metadata": map[string]any{
+				"name":      name,
+				"namespace": namespace,
+			},
+			"spec": map[string]any{
+				"url":      url,
+				"interval": "5m",
+				"ref": map[string]any{
+					"tag": tag,
+				},
+			},
+		},
+	}
+
+	logger.Log("Ensuring OCIRepository %s/%s (url: %s, tag: %s)", namespace, name, url, tag)
+	err := state.GetFramework().MC().Create(ctx, obj)
+	if err != nil && !errors.IsAlreadyExists(err) {
+		Expect(err).NotTo(HaveOccurred())
+	}
+}
+
+// updateOCIRepositoryTag patches the spec.ref.tag of an existing OCIRepository.
+func updateOCIRepositoryTag(ctx context.Context, name, namespace, tag string) {
+	GinkgoHelper()
+
+	obj := &unstructured.Unstructured{}
+	obj.SetAPIVersion("source.toolkit.fluxcd.io/v1beta2")
+	obj.SetKind("OCIRepository")
+
+	err := state.GetFramework().MC().Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, obj)
+	Expect(err).NotTo(HaveOccurred())
+
+	if err := unstructured.SetNestedField(obj.Object, tag, "spec", "ref", "tag"); err != nil {
+		Expect(err).NotTo(HaveOccurred())
+	}
+
+	logger.Log("Updating OCIRepository %s/%s tag to %s", namespace, name, tag)
+	err = state.GetFramework().MC().Update(ctx, obj, &cr.UpdateOptions{})
+	Expect(err).NotTo(HaveOccurred())
 }
 
 func buildHelmRelease(cfg HelmReleaseConfig) *helmv2.HelmRelease {
@@ -296,9 +492,9 @@ func buildHelmRelease(cfg HelmReleaseConfig) *helmv2.HelmRelease {
 	return hr
 }
 
-// CreateValuesSecret creates a Secret containing chart values for a HelmRelease.
+// createValuesSecret creates a Secret containing chart values for a HelmRelease.
 // It ensures the target namespace exists before creating the Secret.
-func CreateValuesSecret(ctx context.Context, name, namespace, values string) {
+func createValuesSecret(ctx context.Context, name, namespace, values string) {
 	GinkgoHelper()
 
 	ensureNamespace(ctx, namespace)
@@ -321,15 +517,32 @@ func CreateValuesSecret(ctx context.Context, name, namespace, values string) {
 	Expect(err).NotTo(HaveOccurred())
 }
 
-// UpdateHelmReleaseVersion updates the chart version of an existing HelmRelease.
-// For HelmRepository sources, it updates spec.chart.spec.version.
-// For OCIRepository sources, the version is controlled by the OCIRepository itself,
-// so this is a no-op and the caller should update the OCIRepository instead.
-func UpdateHelmReleaseVersion(ctx context.Context, name, namespace, version string) {
+// UpdateHelmReleaseVersion updates the chart version for an existing HelmRelease.
+// For HelmRepository sources, it updates spec.chart.spec.version on the HelmRelease.
+// For OCIRepository sources, it updates spec.ref.tag on the OCIRepository (sourced from cfg).
+func UpdateHelmReleaseVersion(ctx context.Context, cfg HelmReleaseConfig, version string) {
 	GinkgoHelper()
 
+	sourceKind := cfg.SourceKind
+	if sourceKind == "" {
+		sourceKind = SourceKindOCIRepository
+	}
+
+	if sourceKind == SourceKindOCIRepository {
+		sourceName := cfg.SourceName
+		if sourceName == "" {
+			sourceName = cfg.ChartName
+		}
+		sourceNamespace := cfg.SourceNamespace
+		if sourceNamespace == "" {
+			sourceNamespace = cfg.Namespace
+		}
+		updateOCIRepositoryTag(ctx, sourceName, sourceNamespace, version)
+		return
+	}
+
 	hr := &helmv2.HelmRelease{}
-	err := state.GetFramework().MC().Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, hr)
+	err := state.GetFramework().MC().Get(ctx, types.NamespacedName{Name: cfg.Name, Namespace: cfg.Namespace}, hr)
 	Expect(err).NotTo(HaveOccurred())
 
 	if hr.Spec.Chart != nil {

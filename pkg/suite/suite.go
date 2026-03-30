@@ -60,6 +60,8 @@ type suite struct {
 	helmSourceKind           client.SourceKind
 	helmSourceName           string
 	helmSourceNamespace      string
+	helmSourceURL            string
+	helmChartName            string
 	helmTargetNamespace      string
 	helmStorageNamespace     string
 	helmReleaseName          string
@@ -181,6 +183,23 @@ func (s *suite) WithHelmSourceName(name string) *suite {
 // If not set, defaults to the HelmRelease namespace.
 func (s *suite) WithHelmSourceNamespace(namespace string) *suite {
 	s.helmSourceNamespace = namespace
+	return s
+}
+
+// WithHelmChartName sets the chart name to use in the HelmRelease spec.
+// This is the name of the chart as it appears in the source (OCIRepository or HelmRepository).
+// Defaults to appName. Set this when the chart name in the registry differs from the app install name.
+func (s *suite) WithHelmChartName(name string) *suite {
+	s.helmChartName = name
+	return s
+}
+
+// WithHelmSourceURL sets the URL of the Helm source to create automatically.
+// For SourceKindHelmRepository, use an OCI URL like "oci://registry/path" or an HTTPS URL.
+// For SourceKindOCIRepository, use an OCI URL like "oci://registry/path/chart".
+// When set, the framework will create the source CR before installing the HelmRelease.
+func (s *suite) WithHelmSourceURL(url string) *suite {
+	s.helmSourceURL = url
 	return s
 }
 
@@ -502,6 +521,10 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 				logger.Log("Uninstalling HelmRelease %s/%s", cfg.Namespace, installName)
 				err := client.DeleteHelmRelease(state.GetContext(), installName, cfg.Namespace)
 				Expect(err).NotTo(HaveOccurred())
+				if cfg.SourceURL != "" {
+					err = client.DeleteHelmSource(state.GetContext(), cfg)
+					Expect(err).NotTo(HaveOccurred())
+				}
 			} else {
 				app := getInstallApp()
 				logger.Log("Uninstalling App %s (%s)", app.AppName, app.InstallName)
@@ -572,10 +595,6 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 						defer cancel()
 
 						cfg := s.buildHelmReleaseConfig(installName, latestVersion)
-						if cfg.Values != "" {
-							client.CreateValuesSecret(ctx, installName, cfg.Namespace, cfg.Values)
-						}
-
 						client.InstallHelmRelease(ctx, cfg)
 					} else {
 						var app *application.Application
@@ -609,6 +628,7 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 			It("Install the application with the version to test", func() {
 				if s.useHelmRelease {
 					appVersion := os.Getenv("E2E_APP_VERSION")
+					Expect(appVersion).NotTo(BeEmpty(), "E2E_APP_VERSION must be set for HelmRelease tests")
 					installName := s.getHelmReleaseName()
 
 					ctx, cancel := context.WithTimeout(state.GetContext(), s.getHelmInstallTimeout())
@@ -618,18 +638,18 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 
 					if s.isUpgrade {
 						// Upgrade: update the existing HelmRelease version
-						client.UpdateHelmReleaseVersion(ctx, installName, cfg.Namespace, appVersion)
+						client.UpdateHelmReleaseVersion(ctx, cfg, appVersion)
 					} else {
-						if cfg.Values != "" {
-							client.CreateValuesSecret(ctx, installName, cfg.Namespace, cfg.Values)
-						}
-
 						client.InstallHelmRelease(ctx, cfg)
 					}
 
-					// Wait for the HelmRelease to become ready with the expected version
+					// Wait for the HelmRelease to be ready at the expected version
 					Eventually(func() (bool, error) {
-						return client.IsHelmReleaseReady(state.GetContext(), installName, cfg.Namespace)
+						ready, err := client.IsHelmReleaseReady(state.GetContext(), installName, cfg.Namespace)
+						if !ready || err != nil {
+							return false, err
+						}
+						return client.IsHelmReleaseVersion(state.GetContext(), installName, cfg.Namespace, appVersion)
 					}).
 						WithContext(ctx).
 						WithPolling(5 * time.Second).
@@ -747,6 +767,13 @@ func (s *suite) getHelmServiceAccountName() string {
 }
 
 // getHelmReleaseName returns the name to use for the HelmRelease CR.
+func (s *suite) getHelmChartName() string {
+	if s.helmChartName != "" {
+		return s.helmChartName
+	}
+	return s.appName
+}
+
 func (s *suite) getHelmReleaseName() string {
 	name := s.installName
 	if name == "" {
@@ -811,11 +838,12 @@ func (s *suite) buildHelmReleaseConfig(installName, chartVersion string) client.
 		TargetNamespace:      s.helmTargetNamespace,
 		StorageNamespace:     s.helmStorageNamespace,
 		ReleaseName:          s.helmReleaseName,
-		ChartName:            s.appName,
+		ChartName:            s.getHelmChartName(),
 		ChartVersion:         chartVersion,
 		SourceKind:           s.helmSourceKind,
 		SourceName:           s.helmSourceName,
 		SourceNamespace:      sourceNamespace,
+		SourceURL:            s.helmSourceURL,
 		Timeout:              s.helmTimeout,
 		Retries:              s.helmRetries,
 		ServiceAccountName:   s.getHelmServiceAccountName(),

@@ -10,7 +10,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Auto-configuration for workload cluster HelmRelease tests: automatically sets namespace to cluster organization namespace and kubeconfig secret to `{clusterName}-kubeconfig` pattern.
-- Add `WithHelmKubeConfigSecretName()` builder method for specifying kubeconfig secret for remote cluster access.
+- `WithHelmKubeConfigSecretName()` builder method for specifying kubeconfig secret for remote cluster access.
+- Automatic source CR creation and cleanup: the framework now creates and deletes the `HelmRepository` or `OCIRepository` CR as part of the test lifecycle when using HelmRelease mode.
+- Default source URL for Giant Swarm apps: `oci://gsoci.azurecr.io/charts/giantswarm` for `HelmRepository` and `oci://gsoci.azurecr.io/charts/giantswarm/{chartName}` for `OCIRepository` — no `WithHelmSourceURL` needed for standard GS apps.
+- `WithHelmSourceURL(string)` builder method for specifying a custom source registry URL.
+- `WithHelmChartName(string)` builder method for when the chart name in the registry differs from the app install name.
+- Upgrade test support for `OCIRepository` sources: the framework now patches `spec.ref.tag` on the OCIRepository during upgrades (previously a no-op).
+
+### Fixed
+
+- Values secret is now created inside `InstallHelmRelease` instead of requiring callers to do it separately.
+- `E2E_APP_VERSION` is now validated at test start — fails immediately with a clear error if unset.
+- Upgrade ready-wait now confirms the new version is deployed, not just that the HelmRelease is ready (which could be the previous version).
 
 ## [4.0.0] - 2026-03-19
 
