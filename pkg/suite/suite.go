@@ -252,7 +252,7 @@ func (s *suite) AfterSuite(fn func()) *suite {
 	return s
 }
 
-// BeforeYpgrade allows configuring tests that will run after the App is installed
+// BeforeUpgrade allows configuring tests that will run after the App is installed
 // but before it is upgraded to the test version.
 // This only runs if `WithIsUpgrade` has been called with `true`.
 // This allows for running tests to check the App has finished installing / setting up
@@ -566,15 +566,14 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 						Expect(err).NotTo(HaveOccurred())
 						latestVersion = strings.TrimPrefix(latestVersion, "v")
 
-						values := s.loadValues()
 						installName := s.getHelmReleaseName()
 
 						ctx, cancel := context.WithTimeout(state.GetContext(), s.getHelmInstallTimeout())
 						defer cancel()
 
 						cfg := s.buildHelmReleaseConfig(installName, latestVersion)
-						if values != "" {
-							client.CreateValuesSecret(ctx, installName, cfg.Namespace, values)
+						if cfg.Values != "" {
+							client.CreateValuesSecret(ctx, installName, cfg.Namespace, cfg.Values)
 						}
 
 						client.InstallHelmRelease(ctx, cfg)
@@ -610,7 +609,6 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 			It("Install the application with the version to test", func() {
 				if s.useHelmRelease {
 					appVersion := os.Getenv("E2E_APP_VERSION")
-					values := s.loadValues()
 					installName := s.getHelmReleaseName()
 
 					ctx, cancel := context.WithTimeout(state.GetContext(), s.getHelmInstallTimeout())
@@ -622,8 +620,8 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 						// Upgrade: update the existing HelmRelease version
 						client.UpdateHelmReleaseVersion(ctx, installName, cfg.Namespace, appVersion)
 					} else {
-						if values != "" {
-							client.CreateValuesSecret(ctx, installName, cfg.Namespace, values)
+						if cfg.Values != "" {
+							client.CreateValuesSecret(ctx, installName, cfg.Namespace, cfg.Values)
 						}
 
 						client.InstallHelmRelease(ctx, cfg)
@@ -631,7 +629,7 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 
 					// Wait for the HelmRelease to become ready with the expected version
 					Eventually(func() (bool, error) {
-						return client.IsHelmReleaseReady(state.GetContext(), installName, s.installNamespace)
+						return client.IsHelmReleaseReady(state.GetContext(), installName, cfg.Namespace)
 					}).
 						WithContext(ctx).
 						WithPolling(5 * time.Second).
