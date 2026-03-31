@@ -230,6 +230,9 @@ func DeleteHelmSource(ctx context.Context, cfg HelmReleaseConfig) error {
 		sourceKind = SourceKindOCIRepository
 	}
 
+	_ = sourcev1.AddToScheme(state.GetFramework().MC().Scheme())
+	_ = sourcev1beta2.AddToScheme(state.GetFramework().MC().Scheme())
+
 	logger.Log("Deleting %s %s/%s", sourceKind, sourceNamespace, sourceName)
 
 	var err error
@@ -255,6 +258,10 @@ func DeleteHelmSource(ctx context.Context, cfg HelmReleaseConfig) error {
 // If the source already exists it is left unchanged.
 func ensureHelmSource(ctx context.Context, cfg HelmReleaseConfig) {
 	GinkgoHelper()
+
+	// Register source-controller types in the client scheme if not already present.
+	_ = sourcev1.AddToScheme(state.GetFramework().MC().Scheme())
+	_ = sourcev1beta2.AddToScheme(state.GetFramework().MC().Scheme())
 
 	sourceKind := cfg.SourceKind
 	if sourceKind == "" {
@@ -358,6 +365,8 @@ func ensureOCIRepository(ctx context.Context, name, namespace, url, tag string) 
 // updateOCIRepositoryTag patches the spec.ref.tag of an existing OCIRepository.
 func updateOCIRepositoryTag(ctx context.Context, name, namespace, tag string) {
 	GinkgoHelper()
+
+	_ = sourcev1beta2.AddToScheme(state.GetFramework().MC().Scheme())
 
 	tag = strings.TrimPrefix(tag, "v")
 
