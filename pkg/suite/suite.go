@@ -819,7 +819,8 @@ func (s *suite) buildHelmReleaseConfig(installName, chartVersion string) client.
 
 	// Auto-configure for WC HelmRelease tests
 	serviceAccountName := s.getHelmServiceAccountName()
-	if s.useHelmRelease && !s.isMCTest {
+	storageNamespace := s.helmStorageNamespace
+	if !s.isMCTest {
 		// Use cluster org namespace if default
 		if namespace == "default" {
 			namespace = cluster.Organization.GetNamespace()
@@ -835,13 +836,22 @@ func (s *suite) buildHelmReleaseConfig(installName, chartVersion string) client.
 		// WC HelmReleases use kubeConfig — setting serviceAccountName causes Flux to
 		// impersonate it on the MC instead of using the kubeconfig, which fails.
 		serviceAccountName = ""
+
+		// Default storageNamespace to targetNamespace so Helm stores release secrets
+		// on the WC where the chart is installed (not the MC org namespace).
+		if storageNamespace == "" {
+			storageNamespace = s.helmTargetNamespace
+			if storageNamespace != "" {
+				logger.Log("Auto-setting HelmRelease storageNamespace to targetNamespace: %s", storageNamespace)
+			}
+		}
 	}
 
 	return client.HelmReleaseConfig{
 		Name:                 installName,
 		Namespace:            namespace,
 		TargetNamespace:      s.helmTargetNamespace,
-		StorageNamespace:     s.helmStorageNamespace,
+		StorageNamespace:     storageNamespace,
 		ReleaseName:          s.helmReleaseName,
 		ChartName:            s.getHelmChartName(),
 		ChartVersion:         chartVersion,

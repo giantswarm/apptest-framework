@@ -84,7 +84,8 @@ type HelmReleaseConfig struct {
 }
 
 // InstallHelmRelease creates a HelmRelease CR and waits for it to become ready.
-// It also ensures that the target and storage namespaces exist before creating the HelmRelease.
+// It ensures the HelmRelease namespace exists on the MC. Target and storage namespaces
+// are created by Flux via spec.install.createNamespace.
 // Timeout can be controlled via the provided context.
 func InstallHelmRelease(ctx context.Context, cfg HelmReleaseConfig) {
 	GinkgoHelper()
@@ -101,14 +102,9 @@ func InstallHelmRelease(ctx context.Context, cfg HelmReleaseConfig) {
 	// Ensure the source CR exists if a URL was provided
 	ensureHelmSource(ctx, cfg)
 
-	// Ensure required namespaces exist
+	// Ensure the HelmRelease namespace exists on the MC.
+	// Target and storage namespaces are created by Flux via spec.install.createNamespace.
 	ensureNamespace(ctx, cfg.Namespace)
-	if cfg.TargetNamespace != "" {
-		ensureNamespace(ctx, cfg.TargetNamespace)
-	}
-	if cfg.StorageNamespace != "" {
-		ensureNamespace(ctx, cfg.StorageNamespace)
-	}
 
 	// Ensure the service account exists
 	if cfg.ServiceAccountName != "" {
@@ -172,9 +168,12 @@ func IsHelmReleaseVersion(ctx context.Context, name, namespace, version string) 
 		return hr.Spec.Chart.Spec.Version == version, nil
 	}
 
-	// For OCIRepository sources, check the last attempted revision in status
+	// For OCIRepository sources, check the last attempted revision in status.
+	// Flux appends a +<oci-digest> suffix (e.g. 0.0.1-abc123+4ef3415e2070) and
+	// version may carry a v prefix, so normalise both sides before comparing.
 	if hr.Status.LastAttemptedRevision != "" {
-		return hr.Status.LastAttemptedRevision == version, nil
+		rev := strings.SplitN(hr.Status.LastAttemptedRevision, "+", 2)[0]
+		return rev == strings.TrimPrefix(version, "v"), nil
 	}
 
 	return false, nil
@@ -420,6 +419,7 @@ func buildHelmRelease(cfg HelmReleaseConfig) *helmv2.HelmRelease {
 				Remediation: &helmv2.InstallRemediation{
 					Retries: retries,
 				},
+				CreateNamespace: true,
 			},
 			Upgrade: &helmv2.Upgrade{
 				Remediation: &helmv2.UpgradeRemediation{
