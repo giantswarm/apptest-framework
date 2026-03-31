@@ -818,6 +818,7 @@ func (s *suite) buildHelmReleaseConfig(installName, chartVersion string) client.
 	kubeConfigSecret := s.helmKubeConfigSecretName
 
 	// Auto-configure for WC HelmRelease tests
+	serviceAccountName := s.getHelmServiceAccountName()
 	if s.useHelmRelease && !s.isMCTest {
 		// Use cluster org namespace if default
 		if namespace == "default" {
@@ -830,6 +831,10 @@ func (s *suite) buildHelmReleaseConfig(installName, chartVersion string) client.
 			kubeConfigSecret = fmt.Sprintf("%s-kubeconfig", cluster.Name)
 			logger.Log("Auto-setting kubeconfig secret: %s", kubeConfigSecret)
 		}
+
+		// WC HelmReleases use kubeConfig — setting serviceAccountName causes Flux to
+		// impersonate it on the MC instead of using the kubeconfig, which fails.
+		serviceAccountName = ""
 	}
 
 	return client.HelmReleaseConfig{
@@ -846,7 +851,7 @@ func (s *suite) buildHelmReleaseConfig(installName, chartVersion string) client.
 		SourceURL:            s.helmSourceURL,
 		Timeout:              s.helmTimeout,
 		Retries:              s.helmRetries,
-		ServiceAccountName:   s.getHelmServiceAccountName(),
+		ServiceAccountName:   serviceAccountName,
 		KubeConfigSecretName: kubeConfigSecret,
 		Values:               s.loadValues(),
 	}

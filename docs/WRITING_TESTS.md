@@ -177,9 +177,9 @@ The only other thing to be aware of is that the tests MUST be performed against 
 
 By default, the framework installs Apps using Giant Swarm's `App` CR. If your chart is managed by Flux and you want to test it via a `HelmRelease` CR instead, you can enable HelmRelease mode.
 
-The framework supports two Flux source kinds:
-- **`OCIRepository`** (default) — references a specific OCI artifact by tag; version is set on the source CR
-- **`HelmRepository`** — Helm-aware source, including OCI registries (`oci://` URL); version is set on the HelmRelease
+The framework supports both source kinds used by Flux HelmReleases:
+- **`OCIRepository`** (default) — used by most Giant Swarm apps deployed via Flux (e.g., `observability-operator`)
+- **`HelmRepository`** — for charts sourced from traditional Helm repositories
 
 For Giant Swarm apps on `gsoci.azurecr.io`, the framework defaults the source URL automatically — no `WithHelmSourceURL` needed in most cases.
 
@@ -188,10 +188,15 @@ For Giant Swarm apps on `gsoci.azurecr.io`, the framework defaults the source UR
 The minimal setup for a standard GS app:
 
 ```go
-// OCIRepository (default) — uses oci://gsoci.azurecr.io/charts/giantswarm/{appName}
+// OCIRepository (default) — framework creates oci://gsoci.azurecr.io/charts/giantswarm/{appName}
 suite.New().
   WithHelmRelease(true).
-  WithHelmTargetNamespace("strimzi-system").
+  WithHelmSourceName("observability-operator").
+  WithHelmSourceNamespace("giantswarm").
+  WithInstallNamespace("giantswarm").
+  WithHelmTargetNamespace("monitoring").
+  WithHelmStorageNamespace("monitoring").
+  WithHelmReleaseName("observability-operator").
   WithValuesFile("./values.yaml").
   Tests(func() {
     It("has the expected resources", func() {
@@ -201,22 +206,7 @@ suite.New().
   Run(t, "HelmRelease Test")
 ```
 
-```go
-// HelmRepository with OCI — uses oci://gsoci.azurecr.io/charts/giantswarm
-suite.New().
-  WithHelmRelease(true).
-  WithHelmSourceKind(client.SourceKindHelmRepository).
-  WithHelmTargetNamespace("strimzi-system").
-  WithValuesFile("./values.yaml").
-  Tests(func() {
-    It("has the expected resources", func() {
-      // your test assertions
-    })
-  }).
-  Run(t, "HelmRelease Test")
-```
-
-Use `WithHelmSourceURL` only if the chart lives outside `gsoci.azurecr.io/charts/giantswarm`, or if you need a custom `WithHelmChartName` when the chart name in the registry differs from the app install name.
+Use `WithHelmSourceURL` only if the chart lives outside `gsoci.azurecr.io/charts/giantswarm`, or `WithHelmChartName` when the chart name in the registry differs from the app install name.
 
 ### Available Builder Methods
 

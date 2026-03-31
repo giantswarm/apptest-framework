@@ -8,11 +8,12 @@ import (
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	"github.com/fluxcd/pkg/apis/meta"
+	sourcev1 "github.com/fluxcd/source-controller/api/v1"
+	sourcev1beta2 "github.com/fluxcd/source-controller/api/v1beta2"
 	"github.com/giantswarm/clustertest/v4/pkg/logger"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	cr "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -229,25 +230,20 @@ func DeleteHelmSource(ctx context.Context, cfg HelmReleaseConfig) error {
 		sourceKind = SourceKindOCIRepository
 	}
 
-	var obj *unstructured.Unstructured
+	logger.Log("Deleting %s %s/%s", sourceKind, sourceNamespace, sourceName)
+
+	var err error
 	switch sourceKind {
 	case SourceKindHelmRepository:
-		obj = &unstructured.Unstructured{}
-		obj.SetAPIVersion("source.toolkit.fluxcd.io/v1")
-		obj.SetKind("HelmRepository")
+		obj := &sourcev1.HelmRepository{ObjectMeta: metav1.ObjectMeta{Name: sourceName, Namespace: sourceNamespace}}
+		err = state.GetFramework().MC().Delete(ctx, obj)
 	case SourceKindOCIRepository:
-		obj = &unstructured.Unstructured{}
-		obj.SetAPIVersion("source.toolkit.fluxcd.io/v1beta2")
-		obj.SetKind("OCIRepository")
+		obj := &sourcev1beta2.OCIRepository{ObjectMeta: metav1.ObjectMeta{Name: sourceName, Namespace: sourceNamespace}}
+		err = state.GetFramework().MC().Delete(ctx, obj)
 	default:
 		return nil
 	}
 
-	obj.SetName(sourceName)
-	obj.SetNamespace(sourceNamespace)
-
-	logger.Log("Deleting %s %s/%s", sourceKind, sourceNamespace, sourceName)
-	err := state.GetFramework().MC().Delete(ctx, obj)
 	if err != nil && !errors.IsNotFound(err) {
 		return fmt.Errorf("deleting %s %s/%s: %w", sourceKind, sourceNamespace, sourceName, err)
 	}
@@ -304,24 +300,20 @@ func ensureHelmSource(ctx context.Context, cfg HelmReleaseConfig) {
 func ensureHelmRepository(ctx context.Context, name, namespace, url string) {
 	GinkgoHelper()
 
-	repoType := "default"
+	repoType := sourcev1.HelmRepositoryTypeDefault
 	if strings.HasPrefix(url, "oci://") {
-		repoType = "oci"
+		repoType = sourcev1.HelmRepositoryTypeOCI
 	}
 
-	obj := &unstructured.Unstructured{
-		Object: map[string]any{
-			"apiVersion": "source.toolkit.fluxcd.io/v1",
-			"kind":       "HelmRepository",
-			"metadata": map[string]any{
-				"name":      name,
-				"namespace": namespace,
-			},
-			"spec": map[string]any{
-				"type":     repoType,
-				"url":      url,
-				"interval": "5m",
-			},
+	obj := &sourcev1.HelmRepository{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: sourcev1.HelmRepositorySpec{
+			Type:     repoType,
+			URL:      url,
+			Interval: metav1.Duration{Duration: 5 * time.Minute},
 		},
 	}
 
@@ -337,24 +329,21 @@ func ensureHelmRepository(ctx context.Context, name, namespace, url string) {
 func ensureOCIRepository(ctx context.Context, name, namespace, url, tag string) {
 	GinkgoHelper()
 
+	tag = strings.TrimPrefix(tag, "v")
 	if tag == "" {
 		tag = "latest"
 	}
 
-	obj := &unstructured.Unstructured{
-		Object: map[string]any{
-			"apiVersion": "source.toolkit.fluxcd.io/v1beta2",
-			"kind":       "OCIRepository",
-			"metadata": map[string]any{
-				"name":      name,
-				"namespace": namespace,
-			},
-			"spec": map[string]any{
-				"url":      url,
-				"interval": "5m",
-				"ref": map[string]any{
-					"tag": tag,
-				},
+	obj := &sourcev1beta2.OCIRepository{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: sourcev1beta2.OCIRepositorySpec{
+			URL:      url,
+			Interval: metav1.Duration{Duration: 5 * time.Minute},
+			Reference: &sourcev1beta2.OCIRepositoryRef{
+				Tag: tag,
 			},
 		},
 	}
@@ -370,16 +359,16 @@ func ensureOCIRepository(ctx context.Context, name, namespace, url, tag string) 
 func updateOCIRepositoryTag(ctx context.Context, name, namespace, tag string) {
 	GinkgoHelper()
 
-	obj := &unstructured.Unstructured{}
-	obj.SetAPIVersion("source.toolkit.fluxcd.io/v1beta2")
-	obj.SetKind("OCIRepository")
+	tag = strings.TrimPrefix(tag, "v")
 
+	obj := &sourcev1beta2.OCIRepository{}
 	err := state.GetFramework().MC().Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, obj)
 	Expect(err).NotTo(HaveOccurred())
 
-	if err := unstructured.SetNestedField(obj.Object, tag, "spec", "ref", "tag"); err != nil {
-		Expect(err).NotTo(HaveOccurred())
+	if obj.Spec.Reference == nil {
+		obj.Spec.Reference = &sourcev1beta2.OCIRepositoryRef{}
 	}
+	obj.Spec.Reference.Tag = tag
 
 	logger.Log("Updating OCIRepository %s/%s tag to %s", namespace, name, tag)
 	err = state.GetFramework().MC().Update(ctx, obj, &cr.UpdateOptions{})
