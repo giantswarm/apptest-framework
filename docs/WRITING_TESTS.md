@@ -181,16 +181,14 @@ The framework supports both source kinds used by Flux HelmReleases:
 - **`OCIRepository`** (default) — used by most Giant Swarm apps deployed via Flux (e.g., `observability-operator`)
 - **`HelmRepository`** — for charts sourced from traditional Helm repositories
 
-### Prerequisites
-
-A source resource (`OCIRepository` or `HelmRepository`) must already exist in the target cluster that points to the chart.
+For Giant Swarm apps on `gsoci.azurecr.io`, the framework defaults the source URL automatically — no `WithHelmSourceURL` needed in most cases.
 
 ### Configuration
 
-Enable HelmRelease mode using the `WithHelmRelease(true)` builder method and provide the source reference:
+The minimal setup for a standard GS app:
 
 ```go
-// OCIRepository example (default source kind, matching real GS deployments)
+// OCIRepository (default) — framework creates oci://gsoci.azurecr.io/charts/giantswarm/{appName}
 suite.New().
   WithHelmRelease(true).
   WithHelmSourceName("observability-operator").
@@ -201,30 +199,14 @@ suite.New().
   WithHelmReleaseName("observability-operator").
   WithValuesFile("./values.yaml").
   Tests(func() {
-
     It("has the expected resources", func() {
       // your test assertions
     })
-
   }).
   Run(t, "HelmRelease Test")
 ```
 
-```go
-// HelmRepository example
-suite.New().
-  WithHelmRelease(true).
-  WithHelmSourceKind(client.SourceKindHelmRepository).
-  WithHelmSourceName("my-helm-repo").
-  WithHelmSourceNamespace("flux-system").
-  WithInstallNamespace("default").
-  WithHelmTargetNamespace("my-app-ns").
-  WithValuesFile("./values.yaml").
-  Tests(func() {
-    // your test assertions
-  }).
-  Run(t, "HelmRelease HelmRepo Test")
-```
+Use `WithHelmSourceURL` only if the chart lives outside `gsoci.azurecr.io/charts/giantswarm`, or `WithHelmChartName` when the chart name in the registry differs from the app install name.
 
 ### Available Builder Methods
 
@@ -232,39 +214,41 @@ suite.New().
 | --- | --- |
 | `WithHelmRelease(bool)` | Enables HelmRelease mode. When `true`, creates a Flux `HelmRelease` CR instead of an `App` CR. |
 | `WithHelmSourceKind(SourceKind)` | Sets the source kind: `client.SourceKindOCIRepository` (default) or `client.SourceKindHelmRepository`. |
-| `WithHelmSourceName(string)` | Sets the name of the source reference (`OCIRepository` or `HelmRepository`). Defaults to `appName`. |
-| `WithHelmSourceNamespace(string)` | Sets the namespace of the source reference. Defaults to the HelmRelease namespace. |
-| `WithHelmTargetNamespace(string)` | Sets the namespace where the Helm chart will be installed (`spec.targetNamespace`). |
-| `WithHelmStorageNamespace(string)` | Sets the namespace for Helm storage (`spec.storageNamespace`). |
-| `WithHelmReleaseName(string)` | Sets the Helm release name (`spec.releaseName`). Defaults to the HelmRelease resource name. |
-| `WithHelmTimeout(time.Duration)` | Sets the timeout for Helm operations (`spec.timeout`) and the install/upgrade step context deadline. Defaults to 10 minutes. |
-| `WithHelmRetries(int)` | Sets the number of retries for install/upgrade remediation. Defaults to 10. |
-| `WithHelmServiceAccountName(string)` | Sets the service account to impersonate when reconciling. Defaults to `appName`. The service account is auto-created if it doesn't exist. |
+| `WithHelmSourceURL(string)` | URL of the source CR. Defaults to `oci://gsoci.azurecr.io/charts/giantswarm` (HelmRepository) or `oci://gsoci.azurecr.io/charts/giantswarm/{chartName}` (OCIRepository). Set this only for non-GS registries. |
+| `WithHelmChartName(string)` | Name of the chart in the source registry. Defaults to `appName`. Set this when the chart name differs from the app install name. |
+| `WithHelmSourceName(string)` | Name of the source CR to create/reference. Defaults to `appName`. |
+| `WithHelmSourceNamespace(string)` | Namespace of the source CR. Defaults to the HelmRelease namespace. |
+| `WithHelmTargetNamespace(string)` | Namespace where the Helm chart will be installed (`spec.targetNamespace`). |
+| `WithHelmStorageNamespace(string)` | Namespace for Helm storage (`spec.storageNamespace`). |
+| `WithHelmReleaseName(string)` | Helm release name (`spec.releaseName`). Defaults to the HelmRelease resource name. |
+| `WithHelmTimeout(time.Duration)` | Timeout for Helm operations. Defaults to 10 minutes. |
+| `WithHelmRetries(int)` | Number of retries for install/upgrade remediation. Defaults to 10. |
+| `WithHelmServiceAccountName(string)` | Service account to impersonate when reconciling. Defaults to `appName`; auto-created if missing. |
+| `WithHelmKubeConfigSecretName(string)` | Kubeconfig secret for remote cluster access. Defaults to `{clusterName}-kubeconfig` for workload cluster tests. |
 
 ### How It Works
 
 When HelmRelease mode is enabled, the framework will:
 
-1. Ensure required namespaces exist (HelmRelease namespace, target namespace, storage namespace), creating them if needed.
-2. Ensure the service account exists, creating it if needed.
-3. Create a `Secret` containing chart values (from the values file) if values are provided.
-4. Create a `HelmRelease` CR referencing the specified source (OCIRepository or HelmRepository).
-5. Configure install/upgrade remediation with retries and rollback strategy.
-6. Wait for the HelmRelease `Ready` condition to become `True`.
-7. Run your test cases.
-8. Delete the `HelmRelease` and associated values `Secret` during cleanup.
+1. Auto-configure defaults for workload cluster tests (namespace → cluster org namespace, kubeconfig secret → `{clusterName}-kubeconfig`).
+2. Create the source CR (`HelmRepository` or `OCIRepository`), defaulting to the GS OCI registry.
+3. Ensure required namespaces exist, creating them if needed.
+4. Ensure the service account exists, creating it if needed.
+5. Create a `Secret` containing chart values if a values file is provided.
+6. Create the `HelmRelease` CR referencing the source.
+7. Wait for the HelmRelease `Ready` condition to become `True`.
+8. Run your test cases.
+9. Delete the `HelmRelease`, values `Secret`, and source CR during cleanup.
 
 ### Upgrade Tests with HelmRelease
 
-Upgrade tests work with HelmRelease mode when using a `HelmRepository` source. The framework will install the latest released version first, then update the chart version on the `HelmRelease`:
+Upgrade tests work for both source kinds. The framework installs the latest released version first, then upgrades:
 
 ```go
 suite.New().
   WithHelmRelease(true).
-  WithHelmSourceKind(client.SourceKindHelmRepository).
-  WithHelmSourceName("my-helm-repo").
+  WithHelmTargetNamespace("strimzi-system").
   WithIsUpgrade(true).
-  WithInstallNamespace("default").
   BeforeUpgrade(func() {
     // checks before upgrading
   }).
@@ -274,8 +258,7 @@ suite.New().
   Run(t, "HelmRelease Upgrade Test")
 ```
 
-> [!NOTE]
-> For `OCIRepository` sources, the chart version is controlled by the OCIRepository resource itself, not by the HelmRelease. Upgrade tests with OCIRepository require updating the OCIRepository tag externally.
+For `HelmRepository` sources the framework patches `spec.chart.spec.version` on the HelmRelease. For `OCIRepository` sources it patches `spec.ref.tag` on the OCIRepository.
 
 ### Client Helper Functions
 
