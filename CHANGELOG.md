@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.0] - 2026-04-01
+
 ### Added
 
 - Auto-configuration for workload cluster HelmRelease tests: automatically sets namespace to cluster organization namespace and kubeconfig secret to `{clusterName}-kubeconfig` pattern.
@@ -377,7 +379,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Config package to provide standard app configuration
 - Client package to abstract some test functionality
 
-[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v4.0.0...HEAD
+[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v4.1.0...HEAD
+[4.1.0]: https://github.com/giantswarm/apptest-framework/compare/v4.0.0...v4.1.0
 [4.0.0]: https://github.com/giantswarm/apptest-framework/compare/v3.3.0...v4.0.0
 [3.3.0]: https://github.com/giantswarm/apptest-framework/compare/v3.2.0...v3.3.0
 [3.2.0]: https://github.com/giantswarm/apptest-framework/compare/v3.1.1...v3.2.0
