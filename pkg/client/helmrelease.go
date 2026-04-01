@@ -3,9 +3,13 @@ package client
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
+	"github.com/fluxcd/pkg/apis/meta"
+	sourcev1 "github.com/fluxcd/source-controller/api/v1"
+	sourcev1beta2 "github.com/fluxcd/source-controller/api/v1beta2"
 	"github.com/giantswarm/clustertest/v4/pkg/logger"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -27,6 +31,9 @@ const (
 	SourceKindHelmRepository SourceKind = "HelmRepository"
 	// SourceKindOCIRepository uses spec.chartRef with an OCIRepository reference.
 	SourceKindOCIRepository SourceKind = "OCIRepository"
+
+	// DefaultGiantSwarmHelmRepositoryURL is the default OCI registry for Giant Swarm Helm charts.
+	DefaultGiantSwarmHelmRepositoryURL = "oci://gsoci.azurecr.io/charts/giantswarm"
 )
 
 // HelmReleaseConfig holds the configuration needed to create a HelmRelease CR.
@@ -54,6 +61,12 @@ type HelmReleaseConfig struct {
 	// SourceNamespace is the namespace of the source reference.
 	// If empty, defaults to the HelmRelease namespace.
 	SourceNamespace string
+	// SourceURL is the URL of the source to create automatically.
+	// For SourceKindHelmRepository: an OCI URL ("oci://registry/path") or HTTPS URL.
+	// For SourceKindOCIRepository: an OCI URL ("oci://registry/path/chart").
+	// When set, the framework creates the source CR before installing the HelmRelease.
+	// If empty, the source CR must already exist in the cluster.
+	SourceURL string
 	// Values is the raw values YAML to pass to the chart.
 	Values string
 	// Interval is the reconciliation interval. Defaults to 5m.
@@ -65,10 +78,14 @@ type HelmReleaseConfig struct {
 	// ServiceAccountName is the Kubernetes service account to impersonate when reconciling.
 	// Required by clusters with the flux-multi-tenancy Kyverno policy.
 	ServiceAccountName string
+	// KubeConfigSecretName is the name of the secret containing kubeconfig for remote cluster access.
+	// Required when deploying to a workload cluster from the management cluster.
+	KubeConfigSecretName string
 }
 
 // InstallHelmRelease creates a HelmRelease CR and waits for it to become ready.
-// It also ensures that the target and storage namespaces exist before creating the HelmRelease.
+// It ensures the HelmRelease namespace exists on the MC. Target and storage namespaces
+// are created by Flux via spec.install.createNamespace.
 // Timeout can be controlled via the provided context.
 func InstallHelmRelease(ctx context.Context, cfg HelmReleaseConfig) {
 	GinkgoHelper()
@@ -82,18 +99,20 @@ func InstallHelmRelease(ctx context.Context, cfg HelmReleaseConfig) {
 		cfg.SourceName = cfg.ChartName
 	}
 
-	// Ensure required namespaces exist
+	// Ensure the source CR exists if a URL was provided
+	ensureHelmSource(ctx, cfg)
+
+	// Ensure the HelmRelease namespace exists on the MC.
+	// Target and storage namespaces are created by Flux via spec.install.createNamespace.
 	ensureNamespace(ctx, cfg.Namespace)
-	if cfg.TargetNamespace != "" {
-		ensureNamespace(ctx, cfg.TargetNamespace)
-	}
-	if cfg.StorageNamespace != "" {
-		ensureNamespace(ctx, cfg.StorageNamespace)
-	}
 
 	// Ensure the service account exists
 	if cfg.ServiceAccountName != "" {
 		ensureServiceAccount(ctx, cfg.ServiceAccountName, cfg.Namespace)
+	}
+
+	if cfg.Values != "" {
+		createValuesSecret(ctx, cfg.Name, cfg.Namespace, cfg.Values)
 	}
 
 	hr := buildHelmRelease(cfg)
@@ -149,9 +168,12 @@ func IsHelmReleaseVersion(ctx context.Context, name, namespace, version string) 
 		return hr.Spec.Chart.Spec.Version == version, nil
 	}
 
-	// For OCIRepository sources, check the last attempted revision in status
+	// For OCIRepository sources, check the last attempted revision in status.
+	// Flux appends a +<oci-digest> suffix (e.g. 0.0.1-abc123+4ef3415e2070) and
+	// version may carry a v prefix, so normalise both sides before comparing.
 	if hr.Status.LastAttemptedRevision != "" {
-		return hr.Status.LastAttemptedRevision == version, nil
+		rev := strings.SplitN(hr.Status.LastAttemptedRevision, "+", 2)[0]
+		return rev == strings.TrimPrefix(version, "v"), nil
 	}
 
 	return false, nil
@@ -184,6 +206,181 @@ func DeleteHelmRelease(ctx context.Context, name, namespace string) error {
 	}
 
 	return nil
+}
+
+// DeleteHelmSource deletes the source CR (HelmRepository or OCIRepository) created by ensureHelmSource.
+// It is a no-op if SourceURL is empty (i.e. the source was pre-existing and not created by the framework).
+func DeleteHelmSource(ctx context.Context, cfg HelmReleaseConfig) error {
+	if cfg.SourceURL == "" {
+		return nil
+	}
+
+	sourceName := cfg.SourceName
+	if sourceName == "" {
+		sourceName = cfg.ChartName
+	}
+	sourceNamespace := cfg.SourceNamespace
+	if sourceNamespace == "" {
+		sourceNamespace = cfg.Namespace
+	}
+
+	sourceKind := cfg.SourceKind
+	if sourceKind == "" {
+		sourceKind = SourceKindOCIRepository
+	}
+
+	_ = sourcev1.AddToScheme(state.GetFramework().MC().Scheme())
+	_ = sourcev1beta2.AddToScheme(state.GetFramework().MC().Scheme())
+
+	logger.Log("Deleting %s %s/%s", sourceKind, sourceNamespace, sourceName)
+
+	var err error
+	switch sourceKind {
+	case SourceKindHelmRepository:
+		obj := &sourcev1.HelmRepository{ObjectMeta: metav1.ObjectMeta{Name: sourceName, Namespace: sourceNamespace}}
+		err = state.GetFramework().MC().Delete(ctx, obj)
+	case SourceKindOCIRepository:
+		obj := &sourcev1beta2.OCIRepository{ObjectMeta: metav1.ObjectMeta{Name: sourceName, Namespace: sourceNamespace}}
+		err = state.GetFramework().MC().Delete(ctx, obj)
+	default:
+		return nil
+	}
+
+	if err != nil && !errors.IsNotFound(err) {
+		return fmt.Errorf("deleting %s %s/%s: %w", sourceKind, sourceNamespace, sourceName, err)
+	}
+	return nil
+}
+
+// ensureHelmSource creates the source CR (HelmRepository or OCIRepository) if SourceURL is set.
+// For SourceKindHelmRepository with no SourceURL, defaults to DefaultGiantSwarmHelmRepositoryURL.
+// If the source already exists it is left unchanged.
+func ensureHelmSource(ctx context.Context, cfg HelmReleaseConfig) {
+	GinkgoHelper()
+
+	// Register source-controller types in the client scheme if not already present.
+	_ = sourcev1.AddToScheme(state.GetFramework().MC().Scheme())
+	_ = sourcev1beta2.AddToScheme(state.GetFramework().MC().Scheme())
+
+	sourceKind := cfg.SourceKind
+	if sourceKind == "" {
+		sourceKind = SourceKindOCIRepository
+	}
+
+	sourceURL := cfg.SourceURL
+	if sourceURL == "" {
+		switch sourceKind {
+		case SourceKindHelmRepository:
+			sourceURL = DefaultGiantSwarmHelmRepositoryURL
+		case SourceKindOCIRepository:
+			chartName := cfg.ChartName
+			if chartName != "" {
+				sourceURL = DefaultGiantSwarmHelmRepositoryURL + "/" + chartName
+			}
+		}
+	}
+
+	if sourceURL == "" {
+		return
+	}
+
+	sourceName := cfg.SourceName
+	if sourceName == "" {
+		sourceName = cfg.ChartName
+	}
+	sourceNamespace := cfg.SourceNamespace
+	if sourceNamespace == "" {
+		sourceNamespace = cfg.Namespace
+	}
+
+	switch sourceKind {
+	case SourceKindHelmRepository:
+		ensureHelmRepository(ctx, sourceName, sourceNamespace, sourceURL)
+	case SourceKindOCIRepository:
+		ensureOCIRepository(ctx, sourceName, sourceNamespace, sourceURL, cfg.ChartVersion)
+	}
+}
+
+// ensureHelmRepository creates a HelmRepository if it doesn't already exist.
+// For OCI-hosted Helm charts, pass an "oci://" URL; for HTTP/HTTPS catalogs pass an https URL.
+func ensureHelmRepository(ctx context.Context, name, namespace, url string) {
+	GinkgoHelper()
+
+	repoType := sourcev1.HelmRepositoryTypeDefault
+	if strings.HasPrefix(url, "oci://") {
+		repoType = sourcev1.HelmRepositoryTypeOCI
+	}
+
+	obj := &sourcev1.HelmRepository{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: sourcev1.HelmRepositorySpec{
+			Type:     repoType,
+			URL:      url,
+			Interval: metav1.Duration{Duration: 5 * time.Minute},
+		},
+	}
+
+	logger.Log("Ensuring HelmRepository %s/%s (url: %s)", namespace, name, url)
+	err := state.GetFramework().MC().Create(ctx, obj)
+	if err != nil && !errors.IsAlreadyExists(err) {
+		Expect(err).NotTo(HaveOccurred())
+	}
+}
+
+// ensureOCIRepository creates an OCIRepository if it doesn't already exist.
+// The tag is set to chartVersion; pass an empty chartVersion to use "latest".
+func ensureOCIRepository(ctx context.Context, name, namespace, url, tag string) {
+	GinkgoHelper()
+
+	tag = strings.TrimPrefix(tag, "v")
+	if tag == "" {
+		tag = "latest"
+	}
+
+	obj := &sourcev1beta2.OCIRepository{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: sourcev1beta2.OCIRepositorySpec{
+			URL:      url,
+			Interval: metav1.Duration{Duration: 5 * time.Minute},
+			Reference: &sourcev1beta2.OCIRepositoryRef{
+				Tag: tag,
+			},
+		},
+	}
+
+	logger.Log("Ensuring OCIRepository %s/%s (url: %s, tag: %s)", namespace, name, url, tag)
+	err := state.GetFramework().MC().Create(ctx, obj)
+	if err != nil && !errors.IsAlreadyExists(err) {
+		Expect(err).NotTo(HaveOccurred())
+	}
+}
+
+// updateOCIRepositoryTag patches the spec.ref.tag of an existing OCIRepository.
+func updateOCIRepositoryTag(ctx context.Context, name, namespace, tag string) {
+	GinkgoHelper()
+
+	_ = sourcev1beta2.AddToScheme(state.GetFramework().MC().Scheme())
+
+	tag = strings.TrimPrefix(tag, "v")
+
+	obj := &sourcev1beta2.OCIRepository{}
+	err := state.GetFramework().MC().Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, obj)
+	Expect(err).NotTo(HaveOccurred())
+
+	if obj.Spec.Reference == nil {
+		obj.Spec.Reference = &sourcev1beta2.OCIRepositoryRef{}
+	}
+	obj.Spec.Reference.Tag = tag
+
+	logger.Log("Updating OCIRepository %s/%s tag to %s", namespace, name, tag)
+	err = state.GetFramework().MC().Update(ctx, obj, &cr.UpdateOptions{})
+	Expect(err).NotTo(HaveOccurred())
 }
 
 func buildHelmRelease(cfg HelmReleaseConfig) *helmv2.HelmRelease {
@@ -222,6 +419,7 @@ func buildHelmRelease(cfg HelmReleaseConfig) *helmv2.HelmRelease {
 				Remediation: &helmv2.InstallRemediation{
 					Retries: retries,
 				},
+				CreateNamespace: true,
 			},
 			Upgrade: &helmv2.Upgrade{
 				Remediation: &helmv2.UpgradeRemediation{
@@ -281,12 +479,20 @@ func buildHelmRelease(cfg HelmReleaseConfig) *helmv2.HelmRelease {
 		})
 	}
 
+	if cfg.KubeConfigSecretName != "" {
+		hr.Spec.KubeConfig = &meta.KubeConfigReference{
+			SecretRef: &meta.SecretKeyReference{
+				Name: cfg.KubeConfigSecretName,
+			},
+		}
+	}
+
 	return hr
 }
 
-// CreateValuesSecret creates a Secret containing chart values for a HelmRelease.
+// createValuesSecret creates a Secret containing chart values for a HelmRelease.
 // It ensures the target namespace exists before creating the Secret.
-func CreateValuesSecret(ctx context.Context, name, namespace, values string) {
+func createValuesSecret(ctx context.Context, name, namespace, values string) {
 	GinkgoHelper()
 
 	ensureNamespace(ctx, namespace)
@@ -309,15 +515,32 @@ func CreateValuesSecret(ctx context.Context, name, namespace, values string) {
 	Expect(err).NotTo(HaveOccurred())
 }
 
-// UpdateHelmReleaseVersion updates the chart version of an existing HelmRelease.
-// For HelmRepository sources, it updates spec.chart.spec.version.
-// For OCIRepository sources, the version is controlled by the OCIRepository itself,
-// so this is a no-op and the caller should update the OCIRepository instead.
-func UpdateHelmReleaseVersion(ctx context.Context, name, namespace, version string) {
+// UpdateHelmReleaseVersion updates the chart version for an existing HelmRelease.
+// For HelmRepository sources, it updates spec.chart.spec.version on the HelmRelease.
+// For OCIRepository sources, it updates spec.ref.tag on the OCIRepository (sourced from cfg).
+func UpdateHelmReleaseVersion(ctx context.Context, cfg HelmReleaseConfig, version string) {
 	GinkgoHelper()
 
+	sourceKind := cfg.SourceKind
+	if sourceKind == "" {
+		sourceKind = SourceKindOCIRepository
+	}
+
+	if sourceKind == SourceKindOCIRepository {
+		sourceName := cfg.SourceName
+		if sourceName == "" {
+			sourceName = cfg.ChartName
+		}
+		sourceNamespace := cfg.SourceNamespace
+		if sourceNamespace == "" {
+			sourceNamespace = cfg.Namespace
+		}
+		updateOCIRepositoryTag(ctx, sourceName, sourceNamespace, version)
+		return
+	}
+
 	hr := &helmv2.HelmRelease{}
-	err := state.GetFramework().MC().Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, hr)
+	err := state.GetFramework().MC().Get(ctx, types.NamespacedName{Name: cfg.Name, Namespace: cfg.Namespace}, hr)
 	Expect(err).NotTo(HaveOccurred())
 
 	if hr.Spec.Chart != nil {
