@@ -1,4 +1,4 @@
-FROM golang:1.26.1
+FROM golang:1.26.2
 
 RUN apt-get update \
   && apt-get install --no-install-recommends --no-install-suggests -y ca-certificates jq yq \
