@@ -9,8 +9,8 @@ require (
 	github.com/fluxcd/pkg/apis/meta v1.26.0
 	github.com/fluxcd/source-controller/api v1.8.2
 	github.com/giantswarm/apiextensions-application v0.6.2
-	github.com/giantswarm/cluster-standup-teardown/v5 v5.0.1
-	github.com/giantswarm/clustertest/v4 v4.0.1
+	github.com/giantswarm/cluster-standup-teardown/v5 v5.1.0
+	github.com/giantswarm/clustertest/v4 v4.1.0
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
 	golang.org/x/text v0.36.0
@@ -45,7 +45,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
-	github.com/cert-manager/cert-manager v1.20.0 // indirect
+	github.com/cert-manager/cert-manager v1.20.2 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/chai2010/gettext-go v1.0.3 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
@@ -147,9 +147,9 @@ require (
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xlab/treeprint v1.2.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.67.0 // indirect
-	go.opentelemetry.io/otel v1.42.0 // indirect
+	go.opentelemetry.io/otel v1.43.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.42.0 // indirect
-	go.opentelemetry.io/otel/trace v1.42.0 // indirect
+	go.opentelemetry.io/otel/trace v1.43.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.10.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.1 // indirect
@@ -166,7 +166,7 @@ require (
 	golang.org/x/tools v0.43.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.5.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260311181403-84a4fc48630c // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260311181403-84a4fc48630c // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260319201613-d00831a3d3e7 // indirect
 	google.golang.org/grpc v1.79.3 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
@@ -184,7 +184,7 @@ require (
 	k8s.io/kubectl v0.35.3 // indirect
 	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2 // indirect
 	oras.land/oras-go/v2 v2.6.0 // indirect
-	sigs.k8s.io/cluster-api v1.12.3 // indirect
+	sigs.k8s.io/cluster-api v1.12.5 // indirect
 	sigs.k8s.io/e2e-framework v0.6.0 // indirect
 	sigs.k8s.io/gateway-api v1.5.0 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
