@@ -10,7 +10,7 @@ require (
 	github.com/fluxcd/source-controller/api v1.8.2
 	github.com/giantswarm/apiextensions-application v0.6.2
 	github.com/giantswarm/cluster-standup-teardown/v5 v5.1.0
-	github.com/giantswarm/clustertest/v4 v4.1.0
+	github.com/giantswarm/clustertest/v4 v4.2.0
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
 	golang.org/x/text v0.36.0
@@ -186,7 +186,7 @@ require (
 	oras.land/oras-go/v2 v2.6.0 // indirect
 	sigs.k8s.io/cluster-api v1.12.5 // indirect
 	sigs.k8s.io/e2e-framework v0.6.0 // indirect
-	sigs.k8s.io/gateway-api v1.5.0 // indirect
+	sigs.k8s.io/gateway-api v1.5.1 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/kustomize/api v0.21.1 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.21.1 // indirect
