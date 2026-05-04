@@ -6,7 +6,7 @@ go 1.26.2
 replace github.com/giantswarm/apptest-framework/v3 => ../../
 
 require (
-	github.com/giantswarm/apptest-framework/v4 v4.1.0
+	github.com/giantswarm/apptest-framework/v4 v4.2.0
 	github.com/giantswarm/clustertest/v4 v4.3.1
 	github.com/onsi/ginkgo/v2 v2.28.3
 	github.com/onsi/gomega v1.40.0
