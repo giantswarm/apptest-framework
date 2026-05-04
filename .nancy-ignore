@@ -1,8 +1,3 @@
-CVE-2025-47291 until=2026-05-01 # github.com/containerd/containerd - transitive dependency, not directly used
-CVE-2024-25621 until=2026-05-01 # github.com/containerd/containerd - transitive dependency, not directly used
-CVE-2025-47290 until=2026-05-01 # github.com/containerd/containerd - transitive dependency, not directly used
-CVE-2025-64329 until=2026-05-01 # github.com/containerd/containerd - transitive dependency, not directly used
-CVE-2025-47914 until=2026-05-01 # golang.org/x/crypto - transitive dependency
-CVE-2025-58181 until=2026-05-01 # golang.org/x/crypto - transitive dependency
-CVE-2026-27141 until=2026-05-01 # golang.org/x/net@v0.50.0
+CVE-2025-47291 until=2026-05-31 # github.com/containerd/containerd@v1.7.30
+CVE-2025-47290 until=2026-05-31 # github.com/containerd/containerd@v1.7.30
 CVE-2026-35206 until=2026-05-13 # helm.sh/helm/v3@v3.20.1
