@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/giantswarm/cluster-standup-teardown/v5/pkg/values"
-	"github.com/giantswarm/clustertest/v4/pkg/application"
+	"github.com/giantswarm/cluster-standup-teardown/v6/pkg/values"
+	"github.com/giantswarm/clustertest/v5/pkg/application"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 	yaml "sigs.k8s.io/yaml/goyaml.v2"

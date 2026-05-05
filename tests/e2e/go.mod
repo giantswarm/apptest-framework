@@ -3,11 +3,11 @@ module e2e
 go 1.26.2
 
 // This makes sure we use the current version of the framework found in the repo rather than the published version
-replace github.com/giantswarm/apptest-framework/v3 => ../../
+replace github.com/giantswarm/apptest-framework/v4 => ../../
 
 require (
 	github.com/giantswarm/apptest-framework/v4 v4.2.0
-	github.com/giantswarm/clustertest/v4 v4.3.1
+	github.com/giantswarm/clustertest/v5 v5.0.0
 	github.com/onsi/ginkgo/v2 v2.28.3
 	github.com/onsi/gomega v1.40.0
 	k8s.io/api v0.36.0
@@ -50,7 +50,7 @@ require (
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.2 // indirect
 	github.com/giantswarm/apiextensions-application v0.6.2 // indirect
-	github.com/giantswarm/cluster-standup-teardown/v5 v5.2.0 // indirect
+	github.com/giantswarm/cluster-standup-teardown/v6 v6.0.0 // indirect
 	github.com/giantswarm/k8smetadata v0.26.0 // indirect
 	github.com/giantswarm/kubectl-gs/v2 v2.57.0 // indirect
 	github.com/giantswarm/microerror v0.4.1 // indirect
@@ -164,7 +164,7 @@ require (
 	k8s.io/cluster-bootstrap v0.36.0 // indirect
 	k8s.io/component-base v0.36.0 // indirect
 	k8s.io/klog/v2 v2.140.0 // indirect
-	k8s.io/kube-openapi v0.0.0-20260502001324-b7f5293f4787 // indirect
+	k8s.io/kube-openapi v0.0.0-20260505163821-33341827b392 // indirect
 	k8s.io/kubectl v0.36.0 // indirect
 	k8s.io/streaming v0.36.0 // indirect
 	k8s.io/utils v0.0.0-20260319190234-28399d86e0b5 // indirect
