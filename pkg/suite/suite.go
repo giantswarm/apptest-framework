@@ -14,9 +14,9 @@ import (
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	"github.com/giantswarm/apiextensions-application/api/v1alpha1"
-	"github.com/giantswarm/cluster-standup-teardown/v5/pkg/clusterbuilder"
-	"github.com/giantswarm/cluster-standup-teardown/v5/pkg/standup"
-	"github.com/giantswarm/cluster-standup-teardown/v5/pkg/teardown"
+	"github.com/giantswarm/cluster-standup-teardown/v6/pkg/clusterbuilder"
+	"github.com/giantswarm/cluster-standup-teardown/v6/pkg/standup"
+	"github.com/giantswarm/cluster-standup-teardown/v6/pkg/teardown"
 	"github.com/giantswarm/clustertest/v5"
 	"github.com/giantswarm/clustertest/v5/pkg/application"
 	clusterclient "github.com/giantswarm/clustertest/v5/pkg/client"
