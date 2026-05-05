@@ -3,10 +3,10 @@ module e2e
 go 1.26.2
 
 // This makes sure we use the current version of the framework found in the repo rather than the published version
-replace github.com/giantswarm/apptest-framework/v4 => ../../
+replace github.com/giantswarm/apptest-framework/v5 => ../../
 
 require (
-	github.com/giantswarm/apptest-framework/v4 v4.2.0
+	github.com/giantswarm/apptest-framework/v5 v5.0.0
 	github.com/giantswarm/clustertest/v5 v5.0.0
 	github.com/onsi/ginkgo/v2 v2.28.3
 	github.com/onsi/gomega v1.40.0

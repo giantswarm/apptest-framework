@@ -29,10 +29,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	cr "sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/giantswarm/apptest-framework/v4/pkg/bundles"
-	"github.com/giantswarm/apptest-framework/v4/pkg/client"
-	"github.com/giantswarm/apptest-framework/v4/pkg/config"
-	"github.com/giantswarm/apptest-framework/v4/pkg/state"
+	"github.com/giantswarm/apptest-framework/v5/pkg/bundles"
+	"github.com/giantswarm/apptest-framework/v5/pkg/client"
+	"github.com/giantswarm/apptest-framework/v5/pkg/config"
+	"github.com/giantswarm/apptest-framework/v5/pkg/state"
 )
 
 type suite struct {

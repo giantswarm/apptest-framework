@@ -17,7 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	cr "sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/giantswarm/apptest-framework/v4/pkg/state"
+	"github.com/giantswarm/apptest-framework/v5/pkg/state"
 
 	. "github.com/onsi/ginkgo/v2" //nolint:staticcheck
 	. "github.com/onsi/gomega"    //nolint:staticcheck

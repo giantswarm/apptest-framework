@@ -1,4 +1,4 @@
-module github.com/giantswarm/apptest-framework/v4
+module github.com/giantswarm/apptest-framework/v5
 
 go 1.26.2
 
