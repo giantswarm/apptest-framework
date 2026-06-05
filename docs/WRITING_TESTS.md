@@ -268,6 +268,10 @@ The `pkg/client` package provides helper functions for working with HelmRelease 
 | --- | --- |
 | `client.IsHelmReleaseReady(ctx, name, namespace)` | Checks if a HelmRelease has `Ready=True` |
 | `client.IsHelmReleaseVersion(ctx, name, namespace, version)` | Checks the chart version on a HelmRelease |
+| `client.IsAllHelmReleasesReady(ctx, c, names)` | Returns a check function for use with `Eventually` that waits for all listed HelmReleases to reach `Ready=True`. Mirrors `wait.IsAllAppDeployed`. |
+
+> [!NOTE]
+> `WithHelmRelease()` only controls how the **app under test** is deployed. The framework's wait-for-cluster-ready step at the start of every suite auto-detects whichever mechanism (App CR or HelmRelease) the cluster chart used for its default apps — test authors do not need to opt in.
 
 ### Accessing State
 

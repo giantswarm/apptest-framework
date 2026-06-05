@@ -445,15 +445,18 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 				func(wcClient *clusterclient.Client) {
 					logger.Log("Waiting for all default apps to be ready")
 
-					// All providers now use unified cluster apps that deploy default apps directly
+					orgNamespace := state.GetCluster().Organization.GetNamespace()
+
+					// Newer cluster charts deploy default apps as Flux HelmReleases instead of
+					// App CRs. We support both by listing each kind and waiting for whatever
+					// is present. Presence-based detection avoids hard-coding a version.
 					defaultAppsSelectorLabels := cr.MatchingLabels{
 						"giantswarm.io/cluster":        state.GetCluster().Name,
 						"app.kubernetes.io/managed-by": "Helm",
 					}
 
-					// Wait for all default-apps apps to be deployed
 					appList := &v1alpha1.AppList{}
-					err = state.GetFramework().MC().List(state.GetContext(), appList, cr.InNamespace(state.GetCluster().Organization.GetNamespace()), defaultAppsSelectorLabels)
+					err = state.GetFramework().MC().List(state.GetContext(), appList, cr.InNamespace(orgNamespace), defaultAppsSelectorLabels)
 					Expect(err).NotTo(HaveOccurred())
 
 					appNamespacedNames := []types.NamespacedName{}
@@ -461,10 +464,33 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 						appNamespacedNames = append(appNamespacedNames, types.NamespacedName{Name: app.Name, Namespace: app.Namespace})
 					}
 
-					Eventually(wait.IsAllAppDeployed(state.GetContext(), state.GetFramework().MC(), appNamespacedNames)).
-						WithTimeout(15 * time.Minute).
-						WithPolling(10 * time.Second).
-						Should(BeTrue())
+					// Top-level default-app HelmReleases are not labelled the same way as App
+					// CRs by the cluster chart, so list everything in the org namespace and
+					// wait for all of them — matches the cluster-test-suites convention.
+					hrList := &helmv2.HelmReleaseList{}
+					err = state.GetFramework().MC().List(state.GetContext(), hrList, cr.InNamespace(orgNamespace))
+					Expect(err).NotTo(HaveOccurred())
+
+					hrNamespacedNames := []types.NamespacedName{}
+					for _, hr := range hrList.Items {
+						hrNamespacedNames = append(hrNamespacedNames, types.NamespacedName{Name: hr.Name, Namespace: hr.Namespace})
+					}
+
+					logger.Log("Found %d default App CR(s) and %d HelmRelease(s) to wait for in %s", len(appNamespacedNames), len(hrNamespacedNames), orgNamespace)
+
+					if len(appNamespacedNames) > 0 {
+						Eventually(wait.IsAllAppDeployed(state.GetContext(), state.GetFramework().MC(), appNamespacedNames)).
+							WithTimeout(15 * time.Minute).
+							WithPolling(10 * time.Second).
+							Should(BeTrue())
+					}
+
+					if len(hrNamespacedNames) > 0 {
+						Eventually(client.IsAllHelmReleasesReady(state.GetContext(), state.GetFramework().MC(), hrNamespacedNames)).
+							WithTimeout(15 * time.Minute).
+							WithPolling(10 * time.Second).
+							Should(BeTrue())
+					}
 				},
 			}
 

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Support both App-CR and HelmRelease-based default apps when waiting for a workload cluster to become ready. The `BeforeSuite` step now lists default-app `App` CRs (by the existing `giantswarm.io/cluster` + `app.kubernetes.io/managed-by=Helm` selector) and Flux `HelmRelease`s in the cluster's org namespace, and waits for whatever is present. Presence-based detection — no version constant — so the same test suite works against a cluster chart that deploys default apps as App CRs and one that deploys them as HelmReleases.
+- `client.IsAllHelmReleasesReady(ctx, c, []types.NamespacedName)` helper for use with Gomega's `Eventually`, mirroring the shape of `wait.IsAllAppDeployed`.
+
 ## [5.0.1] - 2026-05-08
 
 ### Changed
