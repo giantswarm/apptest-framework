@@ -8,7 +8,7 @@ replace github.com/giantswarm/apptest-framework/v5 => ../../
 require (
 	github.com/giantswarm/apptest-framework/v5 v5.0.1
 	github.com/giantswarm/clustertest/v5 v5.3.0
-	github.com/onsi/ginkgo/v2 v2.29.0
+	github.com/onsi/ginkgo/v2 v2.30.0
 	github.com/onsi/gomega v1.41.0
 	k8s.io/api v0.36.1
 	k8s.io/apimachinery v0.36.1
