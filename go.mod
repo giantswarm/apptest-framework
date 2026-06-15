@@ -203,3 +203,7 @@ require (
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.4.0 // indirect
 )
+
+replace github.com/ulikunitz/xz v0.5.9 => github.com/ulikunitz/xz v0.5.15
+
+replace github.com/yuin/goldmark v1.4.13 => github.com/yuin/goldmark v1.8.2
