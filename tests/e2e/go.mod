@@ -8,8 +8,8 @@ replace github.com/giantswarm/apptest-framework/v5 => ../../
 require (
 	github.com/giantswarm/apptest-framework/v5 v5.0.1
 	github.com/giantswarm/clustertest/v5 v5.3.1
-	github.com/onsi/ginkgo/v2 v2.30.0
-	github.com/onsi/gomega v1.41.0
+	github.com/onsi/ginkgo/v2 v2.31.0
+	github.com/onsi/gomega v1.42.0
 	k8s.io/api v0.36.2
 	k8s.io/apimachinery v0.36.2
 )
@@ -47,7 +47,7 @@ require (
 	github.com/fluxcd/helm-controller/api v1.5.5 // indirect
 	github.com/fluxcd/pkg/apis/acl v0.10.0 // indirect
 	github.com/fluxcd/pkg/apis/kustomize v1.18.0 // indirect
-	github.com/fluxcd/pkg/apis/meta v1.29.0 // indirect
+	github.com/fluxcd/pkg/apis/meta v1.30.0 // indirect
 	github.com/fluxcd/source-controller/api v1.8.5 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.2 // indirect
