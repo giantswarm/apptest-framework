@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `basic` e2e suite: install the `hello-world` test app via a Flux `HelmRelease` instead of an `App` CR. The App CR path injects the cluster-values, which `hello-world` v3.x rejects (`additionalProperties: false` at the schema root) with a `values-schema-violation`, so the install never completed. This mirrors how `cluster-test-suites` installs `hello-world`.
+- `basic` e2e suite: retry the workload cluster connection check to tolerate the WC API DNS record not being resolvable immediately after the cluster becomes ready.
+
 ## [5.0.1] - 2026-05-08
 
 ### Changed

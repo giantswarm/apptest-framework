@@ -21,11 +21,20 @@ const (
 
 func TestBasic(t *testing.T) {
 	installNamespace := "default"
+	// hello-world is installed via a Flux HelmRelease (not an App CR) so that the
+	// platform's cluster-values aren't injected into the chart. hello-world v3.x
+	// sets `additionalProperties: false` at the schema root and would otherwise
+	// fail to install with a values-schema-violation. This mirrors how
+	// cluster-test-suites installs hello-world.
+	releaseName := "hello-world"
 
 	suite.New().
 		WithInstallNamespace(installNamespace).
 		WithIsUpgrade(isUpgrade).
 		WithValuesFile("./values.yaml").
+		WithHelmRelease(true).
+		WithHelmReleaseName(releaseName).
+		WithHelmTargetNamespace(installNamespace).
 		AfterClusterReady(func() {
 
 			It("should connect to the management cluster", func() {
@@ -34,11 +43,18 @@ func TestBasic(t *testing.T) {
 			})
 
 			It("should connect to the workload cluster", func() {
-				wcClient, err := state.GetFramework().WC(state.GetCluster().Name)
-				Expect(err).NotTo(HaveOccurred())
-
-				err = wcClient.CheckConnection()
-				Expect(err).NotTo(HaveOccurred())
+				// Retry to tolerate the workload cluster API DNS record not yet
+				// being resolvable immediately after the cluster is ready.
+				Eventually(func() error {
+					wcClient, err := state.GetFramework().WC(state.GetCluster().Name)
+					if err != nil {
+						return err
+					}
+					return wcClient.CheckConnection()
+				}).
+					WithPolling(10 * time.Second).
+					WithTimeout(5 * time.Minute).
+					ShouldNot(HaveOccurred())
 			})
 
 		}).
@@ -59,7 +75,7 @@ func TestBasic(t *testing.T) {
 				Eventually(func() error {
 					logger.Log("Checking if deployment exists in the workload cluster")
 					var dp appsv1.Deployment
-					err := wcClient.Get(state.GetContext(), types.NamespacedName{Namespace: installNamespace, Name: state.GetApplication().AppName}, &dp)
+					err := wcClient.Get(state.GetContext(), types.NamespacedName{Namespace: installNamespace, Name: releaseName}, &dp)
 					if err != nil {
 						logger.Log("Failed to get deployment: %v", err)
 					}
