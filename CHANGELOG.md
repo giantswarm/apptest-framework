@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.1.0] - 2026-06-17
+
 ### Changed
 
 - Bundle suites (`InAppBundle`): default the parent bundle App to the version pinned by the cluster's Release instead of always installing the latest published bundle. An explicit `E2E_OVERRIDE_VERSIONS` entry for the bundle takes precedence, and if the bundle is not part of the Release the latest published version is used as a fallback. This stops app suites from incidentally running a bundle version that is ahead of (and potentially incompatible with) the release under test — e.g. `security-bundle` v2.x's HelmRelease-based sub-apps on a cluster that still expects App CRs.
@@ -406,7 +408,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Config package to provide standard app configuration
 - Client package to abstract some test functionality
 
-[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v5.0.1...HEAD
+[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v5.1.0...HEAD
+[5.1.0]: https://github.com/giantswarm/apptest-framework/compare/v5.0.1...v5.1.0
 [5.0.1]: https://github.com/giantswarm/apptest-framework/compare/v5.0.0...v5.0.1
 [5.0.0]: https://github.com/giantswarm/apptest-framework/compare/v4.2.0...v5.0.0
 [4.2.0]: https://github.com/giantswarm/apptest-framework/compare/v4.1.0...v4.2.0
