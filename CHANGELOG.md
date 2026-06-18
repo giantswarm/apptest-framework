@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.2.0] - 2026-06-18
+
 ### Added
 
 - Support both App-CR and HelmRelease-based default apps when waiting for a workload cluster to become ready. The `BeforeSuite` step now lists default-app `App` CRs (by the existing `giantswarm.io/cluster` + `app.kubernetes.io/managed-by=Helm` selector) and Flux `HelmRelease`s in the cluster's org namespace, and waits for whatever is present. Presence-based detection — no version constant — so the same test suite works against a cluster chart that deploys default apps as App CRs and one that deploys them as HelmReleases.
@@ -413,7 +415,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Config package to provide standard app configuration
 - Client package to abstract some test functionality
 
-[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v5.1.0...HEAD
+[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v5.2.0...HEAD
+[5.2.0]: https://github.com/giantswarm/apptest-framework/compare/v5.1.0...v5.2.0
 [5.1.0]: https://github.com/giantswarm/apptest-framework/compare/v5.0.1...v5.1.0
 [5.0.1]: https://github.com/giantswarm/apptest-framework/compare/v5.0.0...v5.0.1
 [5.0.0]: https://github.com/giantswarm/apptest-framework/compare/v4.2.0...v5.0.0
