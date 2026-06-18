@@ -377,13 +377,11 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 		}
 
 		if s.inBundleApp != "" {
-			bundleVersion, err := application.GetLatestAppVersion(s.inBundleApp)
-			Expect(err).ToNot(HaveOccurred())
-			bundleVersion = strings.TrimPrefix(bundleVersion, "v")
+			bundleVersion, bundleCatalog := s.resolveBundleVersion(cluster)
 
 			bundleAppName := fmt.Sprintf("%s-%s", cluster.Name, s.inBundleApp)
 			bundleApp := application.New(bundleAppName, s.inBundleApp).
-				WithCatalog(s.appCatalog).
+				WithCatalog(bundleCatalog).
 				WithOrganization(*cluster.Organization).
 				WithClusterName(cluster.Name).
 				WithVersion(bundleVersion).
@@ -392,7 +390,7 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 				WithInCluster(true)
 
 			// Replace app with bundle app that has version of child App set
-			bundleApp, err = bundles.OverrideChildApp(bundleApp, app, s.inBundleAppOverrideType)
+			bundleApp, err := bundles.OverrideChildApp(bundleApp, app, s.inBundleAppOverrideType)
 			Expect(err).NotTo(HaveOccurred())
 			state.SetBundleApplication(bundleApp)
 
@@ -760,6 +758,69 @@ func getInstallApp() *application.Application {
 		return bundleApp
 	}
 	return state.GetApplication()
+}
+
+// resolveBundleVersion determines the version and catalog of the bundle App to install.
+//
+// By default the bundle is pinned to the version shipped by the cluster's Release, so suites
+// that install an app via a bundle test it as released instead of incidentally bumping the
+// bundle to the latest published version (which may be ahead of any release and incompatible).
+// An explicit override via E2E_OVERRIDE_VERSIONS for the bundle takes precedence. If the bundle
+// is not part of the Release, it falls back to the latest published bundle version.
+func (s *suite) resolveBundleVersion(cluster *application.Cluster) (version string, catalog string) {
+	// 1. Explicit override via E2E_OVERRIDE_VERSIONS (e.g. when testing a bundle's own build).
+	if v, c, ok := overrideVersionFor(s.inBundleApp); ok {
+		if c == "" {
+			c = s.appCatalog
+		}
+		logger.Log("Using overridden bundle version for '%s': %s (catalog: %s)", s.inBundleApp, v, c)
+		return strings.TrimPrefix(v, "v"), c
+	}
+
+	// 2. Version pinned by the cluster's Release.
+	if release, err := cluster.GetRelease(); err == nil && release != nil {
+		for _, releaseApp := range release.Spec.Apps {
+			if releaseApp.Name == s.inBundleApp {
+				c := releaseApp.Catalog
+				if c == "" {
+					c = s.appCatalog
+				}
+				logger.Log("Using Release-pinned bundle version for '%s': %s (catalog: %s)", s.inBundleApp, releaseApp.Version, c)
+				return strings.TrimPrefix(releaseApp.Version, "v"), c
+			}
+		}
+	}
+
+	// 3. Fallback: latest published bundle release.
+	latest, err := application.GetLatestAppVersion(s.inBundleApp)
+	Expect(err).ToNot(HaveOccurred())
+	logger.Log("Bundle '%s' is not pinned in the Release; falling back to latest published version: %s", s.inBundleApp, latest)
+	return strings.TrimPrefix(latest, "v"), s.appCatalog
+}
+
+// overrideVersionFor parses the E2E_OVERRIDE_VERSIONS environment variable and returns the
+// version (and optional catalog) requested for the given app, if any. The format mirrors the
+// one used by clustertest: a comma separated list of `app=version` or `app=version:catalog`.
+func overrideVersionFor(appName string) (version string, catalog string, ok bool) {
+	overrides := os.Getenv("E2E_OVERRIDE_VERSIONS")
+	if overrides == "" {
+		return "", "", false
+	}
+	for _, pair := range strings.Split(overrides, ",") {
+		parts := strings.SplitN(pair, "=", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		if !strings.EqualFold(strings.TrimSpace(parts[0]), appName) {
+			continue
+		}
+		value := strings.TrimSpace(parts[1])
+		if idx := strings.LastIndex(value, ":"); idx != -1 {
+			return strings.TrimSpace(value[:idx]), strings.TrimSpace(value[idx+1:]), true
+		}
+		return value, "", true
+	}
+	return "", "", false
 }
 
 func isEphemeralTestMC() bool {

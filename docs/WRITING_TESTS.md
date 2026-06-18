@@ -147,7 +147,21 @@ suite.New().
   ...etc...
 ```
 
-When testing within a bundle, the test framework will use the latest released version of the bundle App and override the version of the App being tested within the bundle values.
+When testing within a bundle, the framework installs the **parent bundle App at the version pinned by the cluster's Release** and overrides the version of the App being tested (the child) within the bundle values. The child App under test still comes from `E2E_APP_VERSION` (e.g. your PR build), so your changes are exercised _inside_ the bundle as it is actually shipped.
+
+### Bundle version resolution
+
+The parent bundle's version is resolved in the following order:
+
+1. An explicit `E2E_OVERRIDE_VERSIONS` entry for the bundle (e.g. `E2E_OVERRIDE_VERSIONS=security-bundle=2.0.0`, optionally `name=version:catalog`) — highest priority.
+2. The version pinned for the bundle in the cluster's Release — the default.
+3. The latest published bundle release — used only as a fallback when the bundle is not part of the Release.
+
+> [!NOTE]
+> The bundle defaults to the **Release-pinned** version rather than the bundle's newest GitHub release. This stops a suite from incidentally running a bundle version that is ahead of (and potentially incompatible with) the release under test — for example a bundle that has moved its sub-apps to Flux `HelmRelease`s while the cluster still expects `App` CRs. If you specifically need a different bundle version, set it via `E2E_OVERRIDE_VERSIONS`.
+
+> [!TIP]
+> This only applies when you install a child App _through_ a bundle via `InAppBundle`. A bundle repository that tests **itself** (e.g. [security-bundle](https://github.com/giantswarm/security-bundle/tree/main/tests/e2e/suites/basic)) installs the bundle as the top-level App under test (driven by `E2E_APP_VERSION`) and does not call `InAppBundle`, so this resolution does not apply to it — its own PR build is tested as expected.
 
 If the bundle App is also a default app please make sure to also read the [Testing Default Apps](#testing-default-apps) section below.
 

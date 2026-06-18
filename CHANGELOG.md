@@ -12,6 +12,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support both App-CR and HelmRelease-based default apps when waiting for a workload cluster to become ready. The `BeforeSuite` step now lists default-app `App` CRs (by the existing `giantswarm.io/cluster` + `app.kubernetes.io/managed-by=Helm` selector) and Flux `HelmRelease`s in the cluster's org namespace, and waits for whatever is present. Presence-based detection — no version constant — so the same test suite works against a cluster chart that deploys default apps as App CRs and one that deploys them as HelmReleases.
 - `client.IsAllHelmReleasesReady(ctx, c, []types.NamespacedName)` helper for use with Gomega's `Eventually`, mirroring the shape of `wait.IsAllAppDeployed`.
 
+## [5.1.0] - 2026-06-17
+
+### Changed
+
+- Bundle suites (`InAppBundle`): default the parent bundle App to the version pinned by the cluster's Release instead of always installing the latest published bundle. An explicit `E2E_OVERRIDE_VERSIONS` entry for the bundle takes precedence, and if the bundle is not part of the Release the latest published version is used as a fallback. This stops app suites from incidentally running a bundle version that is ahead of (and potentially incompatible with) the release under test — e.g. `security-bundle` v2.x's HelmRelease-based sub-apps on a cluster that still expects App CRs.
+
+### Fixed
+
+- `basic` e2e suite: install the `hello-world` test app via a Flux `HelmRelease` instead of an `App` CR. The App CR path injects the cluster-values, which `hello-world` v3.x rejects (`additionalProperties: false` at the schema root) with a `values-schema-violation`, so the install never completed. This mirrors how `cluster-test-suites` installs `hello-world`.
+- `basic` e2e suite: retry the workload cluster connection check to tolerate the WC API DNS record not being resolvable immediately after the cluster becomes ready.
+
 ## [5.0.1] - 2026-05-08
 
 ### Changed
@@ -402,7 +413,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Config package to provide standard app configuration
 - Client package to abstract some test functionality
 
-[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v5.0.1...HEAD
+[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v5.1.0...HEAD
+[5.1.0]: https://github.com/giantswarm/apptest-framework/compare/v5.0.1...v5.1.0
 [5.0.1]: https://github.com/giantswarm/apptest-framework/compare/v5.0.0...v5.0.1
 [5.0.0]: https://github.com/giantswarm/apptest-framework/compare/v4.2.0...v5.0.0
 [4.2.0]: https://github.com/giantswarm/apptest-framework/compare/v4.1.0...v4.2.0
