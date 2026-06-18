@@ -152,6 +152,37 @@ func IsHelmReleaseReady(ctx context.Context, name, namespace string) (bool, erro
 	return false, nil
 }
 
+// IsAllHelmReleasesReady returns a check function for use with Gomega's Eventually
+// that polls the given list of HelmReleases and returns true once all of them
+// have a Ready=True condition. Its signature mirrors wait.IsAllAppDeployed so
+// call-sites can use either one interchangeably.
+func IsAllHelmReleasesReady(ctx context.Context, c cr.Client, helmReleases []types.NamespacedName) func() (bool, error) {
+	return func() (bool, error) {
+		for _, nn := range helmReleases {
+			hr := &helmv2.HelmRelease{}
+			err := c.Get(ctx, nn, hr)
+			if err != nil {
+				if errors.IsNotFound(err) {
+					return false, nil
+				}
+				return false, err
+			}
+
+			ready := false
+			for _, condition := range hr.Status.Conditions {
+				if condition.Type == "Ready" && condition.Status == metav1.ConditionTrue {
+					ready = true
+					break
+				}
+			}
+			if !ready {
+				return false, nil
+			}
+		}
+		return true, nil
+	}
+}
+
 // IsHelmReleaseVersion checks if a HelmRelease has the expected chart version in its status history.
 func IsHelmReleaseVersion(ctx context.Context, name, namespace, version string) (bool, error) {
 	hr := &helmv2.HelmRelease{}
