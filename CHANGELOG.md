@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.2.1] - 2026-07-02
+
 ### Security
 
 - Upgrade `oras.land/oras-go/v2` from v2.6.0 to v2.6.1 to address CVE-2026-50151 (credential forwarding via unvalidated Location header on blob upload), along with the sibling advisories fixed in the same release: CVE-2026-48978, CVE-2026-50162, and GHSA-vh4v-2xq2-g5cg.
@@ -419,7 +421,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Config package to provide standard app configuration
 - Client package to abstract some test functionality
 
-[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v5.2.0...HEAD
+[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v5.2.1...HEAD
+[5.2.1]: https://github.com/giantswarm/apptest-framework/compare/v5.2.0...v5.2.1
 [5.2.0]: https://github.com/giantswarm/apptest-framework/compare/v5.1.0...v5.2.0
 [5.1.0]: https://github.com/giantswarm/apptest-framework/compare/v5.0.1...v5.1.0
 [5.0.1]: https://github.com/giantswarm/apptest-framework/compare/v5.0.0...v5.0.1
