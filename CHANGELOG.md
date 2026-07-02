@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Upgrade `oras.land/oras-go/v2` from v2.6.0 to v2.6.1 to address CVE-2026-50151 (credential forwarding via unvalidated Location header on blob upload), along with the sibling advisories fixed in the same release: CVE-2026-48978, CVE-2026-50162, and GHSA-vh4v-2xq2-g5cg.
+
 ## [5.2.0] - 2026-06-18
 
 ### Added
