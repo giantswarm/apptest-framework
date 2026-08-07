@@ -10,6 +10,7 @@ import (
 	"github.com/fluxcd/pkg/apis/meta"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 	sourcev1beta2 "github.com/fluxcd/source-controller/api/v1beta2"
+	"github.com/giantswarm/clustertest/v5/pkg/helmrelease"
 	"github.com/giantswarm/clustertest/v5/pkg/logger"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -133,53 +134,28 @@ func InstallHelmRelease(ctx context.Context, cfg HelmReleaseConfig) {
 }
 
 // IsHelmReleaseReady checks if a HelmRelease has the Ready condition set to True.
+// The current status is logged on each call, mirroring the App CR wait conditions.
 func IsHelmReleaseReady(ctx context.Context, name, namespace string) (bool, error) {
-	hr := &helmv2.HelmRelease{}
-	err := state.GetFramework().MC().Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, hr)
+	ready, err := helmrelease.IsHelmReleaseReady(ctx, state.GetFramework().MC(), name, namespace)()
 	if err != nil {
 		if errors.IsNotFound(err) {
+			logger.Log("HelmRelease '%s/%s' not found yet", namespace, name)
 			return false, nil
 		}
 		return false, err
 	}
-
-	for _, condition := range hr.Status.Conditions {
-		if condition.Type == "Ready" {
-			return condition.Status == metav1.ConditionTrue, nil
-		}
-	}
-
-	return false, nil
+	return ready, nil
 }
 
 // IsAllHelmReleasesReady returns a check function for use with Gomega's Eventually
 // that polls the given list of HelmReleases and returns true once all of them
 // have a Ready=True condition. Its signature mirrors wait.IsAllAppDeployed so
 // call-sites can use either one interchangeably.
+// Every HelmRelease is checked and logged on each poll, so a stuck release is visible.
 func IsAllHelmReleasesReady(ctx context.Context, c cr.Client, helmReleases []types.NamespacedName) func() (bool, error) {
+	areAllReady := helmrelease.AreAllReady(ctx, c, helmReleases)
 	return func() (bool, error) {
-		for _, nn := range helmReleases {
-			hr := &helmv2.HelmRelease{}
-			err := c.Get(ctx, nn, hr)
-			if err != nil {
-				if errors.IsNotFound(err) {
-					return false, nil
-				}
-				return false, err
-			}
-
-			ready := false
-			for _, condition := range hr.Status.Conditions {
-				if condition.Type == "Ready" && condition.Status == metav1.ConditionTrue {
-					ready = true
-					break
-				}
-			}
-			if !ready {
-				return false, nil
-			}
-		}
-		return true, nil
+		return areAllReady() == nil, nil
 	}
 }
 
@@ -196,7 +172,7 @@ func IsHelmReleaseVersion(ctx context.Context, name, namespace, version string) 
 
 	// Check spec.chart if using HelmRepository source
 	if hr.Spec.Chart != nil {
-		return hr.Spec.Chart.Spec.Version == version, nil
+		return logHelmReleaseVersion(name, version, hr.Spec.Chart.Spec.Version), nil
 	}
 
 	// For OCIRepository sources, check the last attempted revision in status.
@@ -204,10 +180,21 @@ func IsHelmReleaseVersion(ctx context.Context, name, namespace, version string) 
 	// version may carry a v prefix, so normalise both sides before comparing.
 	if hr.Status.LastAttemptedRevision != "" {
 		rev := strings.SplitN(hr.Status.LastAttemptedRevision, "+", 2)[0]
-		return rev == strings.TrimPrefix(version, "v"), nil
+		return logHelmReleaseVersion(name, strings.TrimPrefix(version, "v"), rev), nil
 	}
 
+	logger.Log("HelmRelease version for '%s' is not yet known: expectedVersion='%s'", name, version)
 	return false, nil
+}
+
+// logHelmReleaseVersion logs the version comparison and reports whether it matches.
+func logHelmReleaseVersion(name, expectedVersion, actualVersion string) bool {
+	if expectedVersion == actualVersion {
+		logger.Log("HelmRelease version for '%s' is as expected: expectedVersion='%s' actualVersion='%s'", name, expectedVersion, actualVersion)
+		return true
+	}
+	logger.Log("HelmRelease version for '%s' is not yet as expected: expectedVersion='%s' actualVersion='%s'", name, expectedVersion, actualVersion)
+	return false
 }
 
 // DeleteHelmRelease deletes a HelmRelease CR and its associated values Secret if present.
