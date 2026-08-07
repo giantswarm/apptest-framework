@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Log HelmRelease status while waiting for readiness and version, matching the existing App CR logging. Readiness checks now reuse the `helmrelease` wait helpers from `clustertest` and report every HelmRelease instead of stopping at the first one that isn't ready.
+
 ## [5.2.2] - 2026-07-26
 
 ### Changed
