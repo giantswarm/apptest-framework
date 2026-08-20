@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.2.3] - 2026-08-19
+
 ### Changed
 
 - Log HelmRelease status while waiting for readiness and version, matching the existing App CR logging. Readiness checks now reuse the `helmrelease` wait helpers from `clustertest` and report every HelmRelease instead of stopping at the first one that isn't ready.
@@ -431,7 +433,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Config package to provide standard app configuration
 - Client package to abstract some test functionality
 
-[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v5.2.2...HEAD
+[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v5.2.3...HEAD
+[5.2.3]: https://github.com/giantswarm/apptest-framework/compare/v5.2.2...v5.2.3
 [5.2.2]: https://github.com/giantswarm/apptest-framework/compare/v5.2.1...v5.2.2
 [5.2.1]: https://github.com/giantswarm/apptest-framework/compare/v5.2.0...v5.2.1
 [5.2.0]: https://github.com/giantswarm/apptest-framework/compare/v5.1.0...v5.2.0
