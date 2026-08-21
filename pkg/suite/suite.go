@@ -304,11 +304,11 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 		}
 		latestVersion = strings.TrimPrefix(latestVersion, "v")
 		logger.Log("Overriding 'latest' version to '%s'", latestVersion)
-		os.Setenv("E2E_APP_VERSION", latestVersion)
+		os.Setenv("E2E_APP_VERSION", latestVersion) // #nosec G104
 
 		defer (func() {
 			// Set the env back to latest so it doesn't conflict with other suites
-			os.Setenv("E2E_APP_VERSION", "latest")
+			os.Setenv("E2E_APP_VERSION", "latest") // #nosec G104
 		})()
 	}
 
