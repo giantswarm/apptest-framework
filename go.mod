@@ -9,8 +9,8 @@ require (
 	github.com/fluxcd/pkg/apis/meta v1.31.0
 	github.com/fluxcd/source-controller/api v1.9.4
 	github.com/giantswarm/apiextensions-application v0.6.2
-	github.com/giantswarm/cluster-standup-teardown/v6 v6.0.4
-	github.com/giantswarm/clustertest/v5 v5.5.2
+	github.com/giantswarm/cluster-standup-teardown/v6 v6.0.5
+	github.com/giantswarm/clustertest/v5 v5.5.3
 	github.com/onsi/ginkgo/v2 v2.32.1
 	github.com/onsi/gomega v1.42.1
 	golang.org/x/text v0.41.0
