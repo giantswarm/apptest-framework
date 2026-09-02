@@ -149,8 +149,8 @@ github.com/fxamacker/cbor/v2 v2.9.3 h1:oQBnFATpNdY8gJHTndDDv5Xl4QqNaz51G5LLEPhng
 github.com/fxamacker/cbor/v2 v2.9.3/go.mod h1:vM4b+DJCtHn+zz7h3FFp/hDAI9WNWCsZj23V5ytsSxQ=
 github.com/giantswarm/apiextensions-application v0.6.2 h1:XL86OrpprWl5Wp38EUvUXt3ztTo25+V63oDVlFwDpNg=
 github.com/giantswarm/apiextensions-application v0.6.2/go.mod h1:8ylqSmDSzFblCppRQTFo8v9s/F6MX6RTusVVoDDfWso=
-github.com/giantswarm/cluster-standup-teardown/v6 v6.0.5 h1:QznMp3kUmhtV2KIsHjFKXC34hSTHU8D4+9stcE2YuFA=
-github.com/giantswarm/cluster-standup-teardown/v6 v6.0.5/go.mod h1:kuyOo0zoPqX6R2g4j3nguhRVKva7DiLJfAGR4bkphzM=
+github.com/giantswarm/cluster-standup-teardown/v6 v6.0.6 h1:eOHbRhzBhKyOWas2EJpdDkQWfjXy+1DT/h8qTgsaD1Y=
+github.com/giantswarm/cluster-standup-teardown/v6 v6.0.6/go.mod h1:U072SJYlQCt1gEGtYWzeuBVtLGHjht1h4rsLRHnml4w=
 github.com/giantswarm/clustertest/v5 v5.5.4 h1:3HCksvlqX/EdQ8iZEVGDQGfPmEGViEf+gq+21zjzLy4=
 github.com/giantswarm/clustertest/v5 v5.5.4/go.mod h1:9i/nApUP8mHdUFDbg6go0DCMUQ450cV3+dzAhdgbqK8=
 github.com/giantswarm/gitsemver/v2 v2.0.1 h1:XGm8OraRpwq4OKzM7xH5SwgQtvPHWmWbUICbsuQML5Y=
@@ -259,8 +259,8 @@ github.com/google/go-querystring v1.2.0/go.mod h1:8IFJqpSRITyJ8QhQ13bmbeMBDfmeEJ
 github.com/google/gofuzz v1.0.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
 github.com/google/gofuzz v1.2.0 h1:xRy4A+RhZaiKjJ1bPfwQ8sedCA+YS2YcCHW6ec7JMi0=
 github.com/google/gofuzz v1.2.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
-github.com/google/pprof v0.0.0-20260802141513-ef3492d7dac3 h1:LMLX+LgTNWpfvCBdFebv6EsYotImrt/Ppc5cXIriCSo=
-github.com/google/pprof v0.0.0-20260802141513-ef3492d7dac3/go.mod h1:jl5iWTm0/hd5PjEYEOuwAJ57L/CibdZfrqZ5XA5GrCk=
+github.com/google/pprof v0.0.0-20260902005441-ca85771921e4 h1:/6mPXfWmhv8eKck12I0YNIcIjwHtxP3YRIMKiEgTjWg=
+github.com/google/pprof v0.0.0-20260902005441-ca85771921e4/go.mod h1:jl5iWTm0/hd5PjEYEOuwAJ57L/CibdZfrqZ5XA5GrCk=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
 github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/gorilla/handlers v1.5.2 h1:cLTUSsNkgcwhgRqvCNmdbRWG0A3N4F+M2nWKdScwyEE=
