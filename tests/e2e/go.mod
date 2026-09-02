@@ -2,7 +2,6 @@ module e2e
 
 go 1.27.1
 
-// This makes sure we use the current version of the framework found in the repo rather than the published version
 replace github.com/giantswarm/apptest-framework/v5 => ../../
 
 require (
