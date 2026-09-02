@@ -2,8 +2,10 @@ module e2e
 
 go 1.27.1
 
+replace github.com/giantswarm/apptest-framework/v5 => ../../
+
 require (
-	github.com/giantswarm/apptest-framework/v5 v5.2.5
+	github.com/giantswarm/apptest-framework/v5 v5.2.6
 	github.com/giantswarm/clustertest/v5 v5.5.5
 	github.com/onsi/ginkgo/v2 v2.32.1
 	github.com/onsi/gomega v1.43.0
