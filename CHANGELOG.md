@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- HelmRelease mode: the source CR (`OCIRepository` / `HelmRepository`) created for a suite is now deleted during cleanup. Previously any suite relying on the default source URL leaked it, because the cleanup path skipped deletion whenever `WithHelmSourceURL` had not been set explicitly.
+- HelmRelease mode: only a source CR created by the framework is ever updated or deleted. Sources are annotated with `e2e-test-cleanup` on creation, so a pre-existing source shared with the cluster or another tenant is no longer silently adopted, repointed by an upgrade test, or removed during cleanup.
+- HelmRelease mode: a source CR left behind by an interrupted run is now corrected instead of reused as-is, which previously pinned the suite to the earlier run's chart version until it timed out.
+
+### Changed
+
+- HelmRelease mode: `WithHelmSourceName` now defaults to the HelmRelease name instead of the app name, so every suite owns its own source CR. Pointing it at a pre-existing `OCIRepository` is rejected with an explicit error, since the chart version lives in that source's `spec.ref` and the framework must own it to pin the version under test.
+- HelmRelease mode: `OCIRepository` is read and written as `source.toolkit.fluxcd.io/v1`, matching what the cluster and app bundle charts emit, instead of `v1beta2`.
+- HelmRelease mode: an `OCIRepository` created without a chart version now uses a `*` semver range rather than a `latest` tag, which no Giant Swarm chart publishes.
+
 ## [5.2.6] - 2026-09-02
 
 ### Changed

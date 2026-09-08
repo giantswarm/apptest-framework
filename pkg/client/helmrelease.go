@@ -9,9 +9,9 @@ import (
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	"github.com/fluxcd/pkg/apis/meta"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1"
-	sourcev1beta2 "github.com/fluxcd/source-controller/api/v1beta2"
 	"github.com/giantswarm/clustertest/v5/pkg/helmrelease"
 	"github.com/giantswarm/clustertest/v5/pkg/logger"
+	"github.com/giantswarm/clustertest/v5/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -58,6 +58,11 @@ type HelmReleaseConfig struct {
 	// Defaults to SourceKindOCIRepository if not set.
 	SourceKind SourceKind
 	// SourceName is the name of the source reference (HelmRepository or OCIRepository).
+	// If empty, defaults to the HelmRelease name, so that every suite owns its own source
+	// CR and never shares one with the cluster or another tenant. Set this only to point at
+	// a source CR that already exists in the cluster; note that a pre-existing OCIRepository
+	// cannot be used, because for that kind the chart version lives in the source's
+	// spec.ref and the framework must be able to set it.
 	SourceName string
 	// SourceNamespace is the namespace of the source reference.
 	// If empty, defaults to the HelmRelease namespace.
@@ -84,6 +89,76 @@ type HelmReleaseConfig struct {
 	KubeConfigSecretName string
 }
 
+// resolvedSource is the fully defaulted identity of the Flux source CR backing a
+// HelmRelease. It is the single source of truth for the source kind, name, namespace and
+// URL, so that installing, updating and deleting a source can never disagree about which
+// object they are talking about.
+//
+// An empty URL means no source CR is to be created, and one is expected to already exist
+// in the cluster.
+type resolvedSource struct {
+	Kind      SourceKind
+	Name      string
+	Namespace string
+	URL       string
+}
+
+// resolveSource applies the defaulting rules for the source CR backing the given
+// HelmRelease config. It is deliberately free of assertions so it stays a pure function;
+// callers assert on the result.
+func resolveSource(cfg HelmReleaseConfig) resolvedSource {
+	src := resolvedSource{
+		Kind:      cfg.SourceKind,
+		Name:      cfg.SourceName,
+		Namespace: cfg.SourceNamespace,
+		URL:       cfg.SourceURL,
+	}
+
+	if src.Kind == "" {
+		src.Kind = SourceKindOCIRepository
+	}
+	// Default to the HelmRelease name rather than the chart name: the HelmRelease name is
+	// already unique to this test run, so the framework owns the source it creates instead
+	// of colliding with a shared one under the chart's name.
+	if src.Name == "" {
+		src.Name = cfg.Name
+	}
+	if src.Namespace == "" {
+		src.Namespace = cfg.Namespace
+	}
+
+	if src.URL == "" {
+		switch src.Kind {
+		case SourceKindHelmRepository:
+			src.URL = DefaultGiantSwarmHelmRepositoryURL
+		case SourceKindOCIRepository:
+			if cfg.ChartName != "" {
+				src.URL = DefaultGiantSwarmHelmRepositoryURL + "/" + cfg.ChartName
+			}
+		}
+	}
+
+	return src
+}
+
+// frameworkOwnsSource reports whether a source CR may be modified or deleted by this
+// framework. Sources the framework creates carry utils.DeleteAnnotation; anything without
+// it belongs to the cluster or another tenant and must be left alone.
+func frameworkOwnsSource(obj cr.Object) bool {
+	return utils.SafeToDelete(obj.GetAnnotations())
+}
+
+// registerSourceScheme registers the source-controller v1 types on the MC client scheme.
+//
+// clustertest registers only source.toolkit.fluxcd.io/v1beta2, so without this the first
+// Get or Create of a v1 source fails with "no kind is registered for the type".
+//
+// TODO: remove once a clustertest release including
+// https://github.com/giantswarm/clustertest/pull/804 is picked up.
+func registerSourceScheme() {
+	_ = sourcev1.AddToScheme(state.GetFramework().MC().Scheme())
+}
+
 // InstallHelmRelease creates a HelmRelease CR and waits for it to become ready.
 // It ensures the HelmRelease namespace exists on the MC. Target and storage namespaces
 // are created by Flux via spec.install.createNamespace.
@@ -95,12 +170,7 @@ func InstallHelmRelease(ctx context.Context, cfg HelmReleaseConfig) {
 		cfg.Interval = 5 * time.Minute
 	}
 
-	// Default SourceName to ChartName if not set
-	if cfg.SourceName == "" {
-		cfg.SourceName = cfg.ChartName
-	}
-
-	// Ensure the source CR exists if a URL was provided
+	// Ensure the source CR exists
 	ensureHelmSource(ctx, cfg)
 
 	// Ensure the HelmRelease namespace exists on the MC.
@@ -226,173 +296,198 @@ func DeleteHelmRelease(ctx context.Context, name, namespace string) error {
 	return nil
 }
 
-// DeleteHelmSource deletes the source CR (HelmRepository or OCIRepository) created by ensureHelmSource.
-// It is a no-op if SourceURL is empty (i.e. the source was pre-existing and not created by the framework).
+// DeleteHelmSource deletes the source CR (HelmRepository or OCIRepository) backing the
+// HelmRelease, but only the one the framework created.
+//
+// Ownership is decided by the annotation ensureHelmSource sets, not by the config: a source
+// that already existed in the cluster is left in place, since it may be shared with the
+// cluster itself or with other tenants.
 func DeleteHelmSource(ctx context.Context, cfg HelmReleaseConfig) error {
-	if cfg.SourceURL == "" {
-		return nil
-	}
+	src := resolveSource(cfg)
 
-	sourceName := cfg.SourceName
-	if sourceName == "" {
-		sourceName = cfg.ChartName
-	}
-	sourceNamespace := cfg.SourceNamespace
-	if sourceNamespace == "" {
-		sourceNamespace = cfg.Namespace
-	}
+	registerSourceScheme()
 
-	sourceKind := cfg.SourceKind
-	if sourceKind == "" {
-		sourceKind = SourceKindOCIRepository
-	}
-
-	_ = sourcev1.AddToScheme(state.GetFramework().MC().Scheme())
-	_ = sourcev1beta2.AddToScheme(state.GetFramework().MC().Scheme())
-
-	logger.Log("Deleting %s %s/%s", sourceKind, sourceNamespace, sourceName)
-
-	var err error
-	switch sourceKind {
+	var obj cr.Object
+	switch src.Kind {
 	case SourceKindHelmRepository:
-		obj := &sourcev1.HelmRepository{ObjectMeta: metav1.ObjectMeta{Name: sourceName, Namespace: sourceNamespace}}
-		err = state.GetFramework().MC().Delete(ctx, obj)
+		obj = &sourcev1.HelmRepository{}
 	case SourceKindOCIRepository:
-		obj := &sourcev1beta2.OCIRepository{ObjectMeta: metav1.ObjectMeta{Name: sourceName, Namespace: sourceNamespace}}
-		err = state.GetFramework().MC().Delete(ctx, obj)
+		obj = &sourcev1.OCIRepository{}
 	default:
 		return nil
 	}
 
-	if err != nil && !errors.IsNotFound(err) {
-		return fmt.Errorf("deleting %s %s/%s: %w", sourceKind, sourceNamespace, sourceName, err)
+	err := state.GetFramework().MC().Get(ctx, types.NamespacedName{Name: src.Name, Namespace: src.Namespace}, obj)
+	if errors.IsNotFound(err) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("getting %s %s/%s: %w", src.Kind, src.Namespace, src.Name, err)
+	}
+
+	if !frameworkOwnsSource(obj) {
+		logger.Log("Not deleting %s %s/%s: it was not created by this framework", src.Kind, src.Namespace, src.Name)
+		return nil
+	}
+
+	logger.Log("Deleting %s %s/%s", src.Kind, src.Namespace, src.Name)
+	if err := state.GetFramework().MC().Delete(ctx, obj); err != nil && !errors.IsNotFound(err) {
+		return fmt.Errorf("deleting %s %s/%s: %w", src.Kind, src.Namespace, src.Name, err)
 	}
 	return nil
 }
 
-// ensureHelmSource creates the source CR (HelmRepository or OCIRepository) if SourceURL is set.
-// For SourceKindHelmRepository with no SourceURL, defaults to DefaultGiantSwarmHelmRepositoryURL.
-// If the source already exists it is left unchanged.
+// ensureHelmSource makes sure the source CR (HelmRepository or OCIRepository) backing the
+// HelmRelease exists and points at the chart under test.
+//
+// A source the framework creates is annotated so it can be recognised later: it is updated
+// if a previous run left one behind, and deleted during cleanup. A source that already
+// exists without that annotation belongs to somebody else and is never modified.
+//
+// It is a no-op when the resolved source has no URL, which means the source CR is expected
+// to already exist in the cluster.
 func ensureHelmSource(ctx context.Context, cfg HelmReleaseConfig) {
 	GinkgoHelper()
 
-	// Register source-controller types in the client scheme if not already present.
-	_ = sourcev1.AddToScheme(state.GetFramework().MC().Scheme())
-	_ = sourcev1beta2.AddToScheme(state.GetFramework().MC().Scheme())
-
-	sourceKind := cfg.SourceKind
-	if sourceKind == "" {
-		sourceKind = SourceKindOCIRepository
-	}
-
-	sourceURL := cfg.SourceURL
-	if sourceURL == "" {
-		switch sourceKind {
-		case SourceKindHelmRepository:
-			sourceURL = DefaultGiantSwarmHelmRepositoryURL
-		case SourceKindOCIRepository:
-			chartName := cfg.ChartName
-			if chartName != "" {
-				sourceURL = DefaultGiantSwarmHelmRepositoryURL + "/" + chartName
-			}
-		}
-	}
-
-	if sourceURL == "" {
+	src := resolveSource(cfg)
+	if src.URL == "" {
 		return
 	}
 
-	sourceName := cfg.SourceName
-	if sourceName == "" {
-		sourceName = cfg.ChartName
-	}
-	sourceNamespace := cfg.SourceNamespace
-	if sourceNamespace == "" {
-		sourceNamespace = cfg.Namespace
-	}
+	registerSourceScheme()
 
-	switch sourceKind {
+	switch src.Kind {
 	case SourceKindHelmRepository:
-		ensureHelmRepository(ctx, sourceName, sourceNamespace, sourceURL)
+		ensureHelmRepository(ctx, src)
 	case SourceKindOCIRepository:
-		ensureOCIRepository(ctx, sourceName, sourceNamespace, sourceURL, cfg.ChartVersion)
+		ensureOCIRepository(ctx, src, cfg.ChartVersion)
 	}
 }
 
-// ensureHelmRepository creates a HelmRepository if it doesn't already exist.
-// For OCI-hosted Helm charts, pass an "oci://" URL; for HTTP/HTTPS catalogs pass an https URL.
-func ensureHelmRepository(ctx context.Context, name, namespace, url string) {
+// ensureHelmRepository creates the HelmRepository, or updates it if the framework owns it.
+// For OCI-hosted Helm charts the URL is an "oci://" URL; for HTTP/HTTPS catalogs an https one.
+//
+// Reusing a HelmRepository the framework does not own is safe, because for this source kind
+// the chart version is set on the HelmRelease itself rather than on the source.
+func ensureHelmRepository(ctx context.Context, src resolvedSource) {
 	GinkgoHelper()
 
 	repoType := sourcev1.HelmRepositoryTypeDefault
-	if strings.HasPrefix(url, "oci://") {
+	if strings.HasPrefix(src.URL, "oci://") {
 		repoType = sourcev1.HelmRepositoryTypeOCI
 	}
 
-	obj := &sourcev1.HelmRepository{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Spec: sourcev1.HelmRepositorySpec{
-			Type:     repoType,
-			URL:      url,
-			Interval: metav1.Duration{Duration: 5 * time.Minute},
-		},
+	desired := &sourcev1.HelmRepositorySpec{
+		Type:     repoType,
+		URL:      src.URL,
+		Interval: metav1.Duration{Duration: 5 * time.Minute},
 	}
 
-	logger.Log("Ensuring HelmRepository %s/%s (url: %s)", namespace, name, url)
-	err := state.GetFramework().MC().Create(ctx, obj)
-	if err != nil && !errors.IsAlreadyExists(err) {
-		Expect(err).NotTo(HaveOccurred())
+	existing := &sourcev1.HelmRepository{}
+	err := state.GetFramework().MC().Get(ctx, types.NamespacedName{Name: src.Name, Namespace: src.Namespace}, existing)
+	if errors.IsNotFound(err) {
+		logger.Log("Creating HelmRepository %s/%s (url: %s)", src.Namespace, src.Name, src.URL)
+		obj := &sourcev1.HelmRepository{ObjectMeta: sourceObjectMeta(src), Spec: *desired}
+		err = state.GetFramework().MC().Create(ctx, obj)
+		if err != nil && !errors.IsAlreadyExists(err) {
+			Expect(err).NotTo(HaveOccurred())
+		}
+		return
+	}
+	Expect(err).NotTo(HaveOccurred())
+
+	if !frameworkOwnsSource(existing) {
+		logger.Log("Reusing pre-existing HelmRepository %s/%s, which is not managed by this framework", src.Namespace, src.Name)
+		return
+	}
+
+	logger.Log("Updating HelmRepository %s/%s left over from an earlier run (url: %s)", src.Namespace, src.Name, src.URL)
+	existing.Spec = *desired
+	Expect(state.GetFramework().MC().Update(ctx, existing)).To(Succeed())
+}
+
+// ensureOCIRepository creates the OCIRepository, or updates it if the framework owns it.
+// The ref is pinned to chartVersion, falling back to a "*" semver range when no version is
+// given. There is no "latest" tag in the Giant Swarm registry.
+//
+// Unlike a HelmRepository, an OCIRepository carries the chart version in its spec.ref, so
+// one the framework does not own cannot be used: the version under test could not be
+// pinned, and the suite would wait for a version that is never fetched.
+func ensureOCIRepository(ctx context.Context, src resolvedSource, chartVersion string) {
+	GinkgoHelper()
+
+	desired := &sourcev1.OCIRepositorySpec{
+		URL:       src.URL,
+		Interval:  metav1.Duration{Duration: 5 * time.Minute},
+		Reference: ociRepositoryRef(chartVersion),
+	}
+
+	existing := &sourcev1.OCIRepository{}
+	err := state.GetFramework().MC().Get(ctx, types.NamespacedName{Name: src.Name, Namespace: src.Namespace}, existing)
+	if errors.IsNotFound(err) {
+		logger.Log("Creating OCIRepository %s/%s (url: %s, ref: %+v)", src.Namespace, src.Name, src.URL, *desired.Reference)
+		obj := &sourcev1.OCIRepository{ObjectMeta: sourceObjectMeta(src), Spec: *desired}
+		err = state.GetFramework().MC().Create(ctx, obj)
+		if err != nil && !errors.IsAlreadyExists(err) {
+			Expect(err).NotTo(HaveOccurred())
+		}
+		return
+	}
+	Expect(err).NotTo(HaveOccurred())
+
+	Expect(frameworkOwnsSource(existing)).To(BeTrue(), fmt.Sprintf(
+		"OCIRepository %s/%s already exists and is not managed by this framework, so the chart "+
+			"version under test cannot be pinned on it. Remove WithHelmSourceName/WithHelmSourceNamespace "+
+			"to let the framework create its own source, or point them at a name it can own.",
+		src.Namespace, src.Name))
+
+	logger.Log("Updating OCIRepository %s/%s left over from an earlier run (url: %s, ref: %+v)", src.Namespace, src.Name, src.URL, *desired.Reference)
+	existing.Spec = *desired
+	Expect(state.GetFramework().MC().Update(ctx, existing)).To(Succeed())
+}
+
+// sourceObjectMeta builds the metadata for a source CR created by the framework, including
+// the annotation that marks it as ours to update and delete.
+func sourceObjectMeta(src resolvedSource) metav1.ObjectMeta {
+	return metav1.ObjectMeta{
+		Name:      src.Name,
+		Namespace: src.Namespace,
+		Annotations: map[string]string{
+			utils.DeleteAnnotation: "true",
+		},
 	}
 }
 
-// ensureOCIRepository creates an OCIRepository if it doesn't already exist.
-// The tag is set to chartVersion; pass an empty chartVersion to use "latest".
-func ensureOCIRepository(ctx context.Context, name, namespace, url, tag string) {
-	GinkgoHelper()
-
-	tag = strings.TrimPrefix(tag, "v")
+// ociRepositoryRef pins an OCIRepository to the given chart version, or to any version
+// when none is given.
+func ociRepositoryRef(chartVersion string) *sourcev1.OCIRepositoryRef {
+	tag := strings.TrimPrefix(chartVersion, "v")
 	if tag == "" {
-		tag = "latest"
+		return &sourcev1.OCIRepositoryRef{SemVer: "*"}
 	}
-
-	obj := &sourcev1beta2.OCIRepository{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Spec: sourcev1beta2.OCIRepositorySpec{
-			URL:      url,
-			Interval: metav1.Duration{Duration: 5 * time.Minute},
-			Reference: &sourcev1beta2.OCIRepositoryRef{
-				Tag: tag,
-			},
-		},
-	}
-
-	logger.Log("Ensuring OCIRepository %s/%s (url: %s, tag: %s)", namespace, name, url, tag)
-	err := state.GetFramework().MC().Create(ctx, obj)
-	if err != nil && !errors.IsAlreadyExists(err) {
-		Expect(err).NotTo(HaveOccurred())
-	}
+	return &sourcev1.OCIRepositoryRef{Tag: tag}
 }
 
 // updateOCIRepositoryTag patches the spec.ref.tag of an existing OCIRepository.
+// Only a source the framework created is patched, so an upgrade test can never repoint a
+// source that belongs to the cluster or another tenant.
 func updateOCIRepositoryTag(ctx context.Context, name, namespace, tag string) {
 	GinkgoHelper()
 
-	_ = sourcev1beta2.AddToScheme(state.GetFramework().MC().Scheme())
+	registerSourceScheme()
 
 	tag = strings.TrimPrefix(tag, "v")
 
-	obj := &sourcev1beta2.OCIRepository{}
+	obj := &sourcev1.OCIRepository{}
 	err := state.GetFramework().MC().Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, obj)
 	Expect(err).NotTo(HaveOccurred())
 
+	Expect(frameworkOwnsSource(obj)).To(BeTrue(), fmt.Sprintf(
+		"refusing to change the tag of OCIRepository %s/%s, which is not managed by this framework",
+		namespace, name))
+
 	if obj.Spec.Reference == nil {
-		obj.Spec.Reference = &sourcev1beta2.OCIRepositoryRef{}
+		obj.Spec.Reference = &sourcev1.OCIRepositoryRef{}
 	}
 	obj.Spec.Reference.Tag = tag
 
@@ -402,20 +497,7 @@ func updateOCIRepositoryTag(ctx context.Context, name, namespace, tag string) {
 }
 
 func buildHelmRelease(cfg HelmReleaseConfig) *helmv2.HelmRelease {
-	sourceName := cfg.SourceName
-	if sourceName == "" {
-		sourceName = cfg.ChartName
-	}
-
-	sourceNamespace := cfg.SourceNamespace
-	if sourceNamespace == "" {
-		sourceNamespace = cfg.Namespace
-	}
-
-	sourceKind := cfg.SourceKind
-	if sourceKind == "" {
-		sourceKind = SourceKindOCIRepository
-	}
+	src := resolveSource(cfg)
 
 	retries := 10
 	if cfg.Retries != nil {
@@ -453,12 +535,12 @@ func buildHelmRelease(cfg HelmReleaseConfig) *helmv2.HelmRelease {
 		hr.Spec.Timeout = &metav1.Duration{Duration: cfg.Timeout}
 	}
 
-	switch sourceKind {
+	switch src.Kind {
 	case SourceKindOCIRepository:
 		hr.Spec.ChartRef = &helmv2.CrossNamespaceSourceReference{
 			Kind:      string(SourceKindOCIRepository),
-			Name:      sourceName,
-			Namespace: sourceNamespace,
+			Name:      src.Name,
+			Namespace: src.Namespace,
 		}
 	case SourceKindHelmRepository:
 		hr.Spec.Chart = &helmv2.HelmChartTemplate{
@@ -467,8 +549,8 @@ func buildHelmRelease(cfg HelmReleaseConfig) *helmv2.HelmRelease {
 				Version: cfg.ChartVersion,
 				SourceRef: helmv2.CrossNamespaceObjectReference{
 					Kind:      string(SourceKindHelmRepository),
-					Name:      sourceName,
-					Namespace: sourceNamespace,
+					Name:      src.Name,
+					Namespace: src.Namespace,
 				},
 			},
 		}
@@ -539,21 +621,10 @@ func createValuesSecret(ctx context.Context, name, namespace, values string) {
 func UpdateHelmReleaseVersion(ctx context.Context, cfg HelmReleaseConfig, version string) {
 	GinkgoHelper()
 
-	sourceKind := cfg.SourceKind
-	if sourceKind == "" {
-		sourceKind = SourceKindOCIRepository
-	}
+	src := resolveSource(cfg)
 
-	if sourceKind == SourceKindOCIRepository {
-		sourceName := cfg.SourceName
-		if sourceName == "" {
-			sourceName = cfg.ChartName
-		}
-		sourceNamespace := cfg.SourceNamespace
-		if sourceNamespace == "" {
-			sourceNamespace = cfg.Namespace
-		}
-		updateOCIRepositoryTag(ctx, sourceName, sourceNamespace, version)
+	if src.Kind == SourceKindOCIRepository {
+		updateOCIRepositoryTag(ctx, src.Name, src.Namespace, version)
 		return
 	}
 

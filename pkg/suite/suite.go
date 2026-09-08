@@ -173,7 +173,13 @@ func (s *suite) WithHelmSourceKind(kind client.SourceKind) *suite {
 }
 
 // WithHelmSourceName sets the name of the source reference (OCIRepository or HelmRepository)
-// for HelmRelease mode. This must match an existing source CR in the cluster.
+// for HelmRelease mode.
+//
+// If not set, the framework creates and cleans up its own source CR named after the
+// HelmRelease, which is what most suites want. Set this only to point at a source CR that
+// already exists in the cluster, and note that a pre-existing OCIRepository cannot be used:
+// for that kind the chart version lives in the source's spec.ref, so the framework has to
+// own it to pin the version under test.
 func (s *suite) WithHelmSourceName(name string) *suite {
 	s.helmSourceName = name
 	return s
@@ -545,10 +551,10 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 				logger.Log("Uninstalling HelmRelease %s/%s", cfg.Namespace, installName)
 				err := client.DeleteHelmRelease(state.GetContext(), installName, cfg.Namespace)
 				Expect(err).NotTo(HaveOccurred())
-				if cfg.SourceURL != "" {
-					err = client.DeleteHelmSource(state.GetContext(), cfg)
-					Expect(err).NotTo(HaveOccurred())
-				}
+				// DeleteHelmSource only removes a source the framework created, so it is
+				// safe to call unconditionally.
+				err = client.DeleteHelmSource(state.GetContext(), cfg)
+				Expect(err).NotTo(HaveOccurred())
 			} else {
 				app := getInstallApp()
 				logger.Log("Uninstalling App %s (%s)", app.AppName, app.InstallName)

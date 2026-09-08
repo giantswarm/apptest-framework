@@ -205,8 +205,6 @@ The minimal setup for a standard GS app:
 // OCIRepository (default) — framework creates oci://gsoci.azurecr.io/charts/giantswarm/{appName}
 suite.New().
   WithHelmRelease(true).
-  WithHelmSourceName("observability-operator").
-  WithHelmSourceNamespace("giantswarm").
   WithInstallNamespace("giantswarm").
   WithHelmTargetNamespace("monitoring").
   WithHelmStorageNamespace("monitoring").
@@ -222,6 +220,9 @@ suite.New().
 
 Use `WithHelmSourceURL` only if the chart lives outside `gsoci.azurecr.io/charts/giantswarm`, or `WithHelmChartName` when the chart name in the registry differs from the app install name.
 
+> [!NOTE]
+> The framework creates its own source CR, named after the HelmRelease, and deletes it during cleanup. You should not need `WithHelmSourceName` or `WithHelmSourceNamespace`. They exist to point at a source CR that already exists in the cluster, which only works for a `HelmRepository`: an `OCIRepository` carries the chart version in its `spec.ref`, so the framework has to own it to pin the version under test, and a suite that points at one it does not own fails with an explicit error.
+
 ### Available Builder Methods
 
 | Method | Description |
@@ -230,7 +231,7 @@ Use `WithHelmSourceURL` only if the chart lives outside `gsoci.azurecr.io/charts
 | `WithHelmSourceKind(SourceKind)` | Sets the source kind: `client.SourceKindOCIRepository` (default) or `client.SourceKindHelmRepository`. |
 | `WithHelmSourceURL(string)` | URL of the source CR. Defaults to `oci://gsoci.azurecr.io/charts/giantswarm` (HelmRepository) or `oci://gsoci.azurecr.io/charts/giantswarm/{chartName}` (OCIRepository). Set this only for non-GS registries. |
 | `WithHelmChartName(string)` | Name of the chart in the source registry. Defaults to `appName`. Set this when the chart name differs from the app install name. |
-| `WithHelmSourceName(string)` | Name of the source CR to create/reference. Defaults to `appName`. |
+| `WithHelmSourceName(string)` | Name of an existing source CR to reference. Defaults to the HelmRelease name, which the framework creates and deletes itself. Cannot be used to point at an `OCIRepository` the framework does not own. |
 | `WithHelmSourceNamespace(string)` | Namespace of the source CR. Defaults to the HelmRelease namespace. |
 | `WithHelmTargetNamespace(string)` | Namespace where the Helm chart will be installed (`spec.targetNamespace`). |
 | `WithHelmStorageNamespace(string)` | Namespace for Helm storage (`spec.storageNamespace`). |
@@ -245,14 +246,14 @@ Use `WithHelmSourceURL` only if the chart lives outside `gsoci.azurecr.io/charts
 When HelmRelease mode is enabled, the framework will:
 
 1. Auto-configure defaults for workload cluster tests (namespace → cluster org namespace, kubeconfig secret → `{clusterName}-kubeconfig`).
-2. Create the source CR (`HelmRepository` or `OCIRepository`), defaulting to the GS OCI registry.
+2. Create the source CR (`HelmRepository` or `OCIRepository`), named after the HelmRelease and defaulting to the GS OCI registry. It is annotated as test-owned, so a source left behind by an interrupted run is corrected rather than reused with a stale chart version.
 3. Ensure required namespaces exist, creating them if needed.
 4. Ensure the service account exists, creating it if needed.
 5. Create a `Secret` containing chart values if a values file is provided.
 6. Create the `HelmRelease` CR referencing the source.
 7. Wait for the HelmRelease `Ready` condition to become `True`.
 8. Run your test cases.
-9. Delete the `HelmRelease`, values `Secret`, and source CR during cleanup.
+9. Delete the `HelmRelease`, values `Secret`, and source CR during cleanup. Only a source CR the framework created is deleted; one that already existed is left in place.
 
 ### Upgrade Tests with HelmRelease
 
