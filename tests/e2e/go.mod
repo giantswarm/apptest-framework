@@ -7,7 +7,7 @@ replace github.com/giantswarm/apptest-framework/v5 => ../../
 require (
 	github.com/giantswarm/apptest-framework/v5 v5.2.6
 	github.com/giantswarm/clustertest/v5 v5.5.5
-	github.com/onsi/ginkgo/v2 v2.32.1
+	github.com/onsi/ginkgo/v2 v2.32.2
 	github.com/onsi/gomega v1.43.0
 	k8s.io/api v0.37.0
 	k8s.io/apimachinery v0.37.0
@@ -182,7 +182,7 @@ require (
 	oras.land/oras-go/v2 v2.6.2 // indirect
 	sigs.k8s.io/cluster-api v1.14.1 // indirect
 	sigs.k8s.io/cluster-api/api v1.14.1 // indirect
-	sigs.k8s.io/controller-runtime v0.24.1 // indirect
+	sigs.k8s.io/controller-runtime v0.25.0 // indirect
 	sigs.k8s.io/e2e-framework v0.7.0 // indirect
 	sigs.k8s.io/gateway-api v1.6.1 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
