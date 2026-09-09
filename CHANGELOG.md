@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Default apps are no longer installed by the framework when `WithHelmRelease` is set, which overwrote the HelmRelease owned by the cluster chart.
+- Upgrade suites for default apps now wait for the app to be reconciled at the version under test before running the tests.
 
 ## [5.2.6] - 2026-09-02
 

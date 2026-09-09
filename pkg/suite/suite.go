@@ -702,24 +702,25 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 						// The version under test was applied as a Release app override when the
 						// cluster was created, so there is nothing left to install here.
 						Skip("App is a default app - installed as part of the cluster")
-						return
 					}
 
 					// Upgrading a default app is a Release upgrade. The app's own App CR /
 					// HelmRelease is owned by the cluster chart and must not be written to.
 					cluster := state.GetCluster()
-					app := state.GetApplication()
-					bundleApp := state.GetBundleApplication()
-					if bundleApp != nil {
-						cluster = cluster.WithAppOverride(*bundleApp)
-					} else {
-						cluster = cluster.WithAppOverride(*app)
-					}
+					app := getInstallApp()
 
 					ctx, cancel := context.WithTimeout(state.GetContext(), 10*time.Minute)
 					defer cancel()
-					_, err := state.GetFramework().ApplyCluster(ctx, cluster)
+					_, err := state.GetFramework().ApplyCluster(ctx, cluster.WithAppOverride(*app))
 					Expect(err).ToNot(HaveOccurred())
+
+					// ApplyCluster returns once the updated Release is applied and the cluster
+					// is still ready, which says nothing about the app itself. Wait for the
+					// cluster chart to reconcile the app to the version under test, otherwise
+					// the tests run against the pre-upgrade version.
+					waitCtx, waitCancel := context.WithTimeout(state.GetContext(), 15*time.Minute)
+					defer waitCancel()
+					waitForDefaultAppVersion(waitCtx, app)
 
 				case installModeHelmRelease:
 					appVersion := os.Getenv("E2E_APP_VERSION")
@@ -801,6 +802,90 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 	})
 
 	RunSpecs(t, suiteName)
+}
+
+// waitForDefaultAppVersion waits until the resource the cluster chart owns for the given
+// default app has converged on the version under test.
+//
+// The cluster chart decides whether a default app is rendered as an App CR (older cluster
+// charts) or as a Flux HelmRelease (current ones), so both kinds are looked for in the
+// cluster's organization namespace and whichever exists is waited for.
+func waitForDefaultAppVersion(ctx context.Context, app *application.Application) {
+	GinkgoHelper()
+
+	builtApp, _, err := app.Build()
+	Expect(err).NotTo(HaveOccurred())
+	version := strings.TrimPrefix(builtApp.Spec.Version, "v")
+
+	cluster := state.GetCluster()
+	logger.Log("Waiting for default app '%s' to be reconciled at version '%s'", app.AppName, version)
+
+	Eventually(func() (bool, error) {
+		return isDefaultAppAtVersion(ctx, cluster.Name, cluster.GetNamespace(), app.AppName, version)
+	}).
+		WithContext(ctx).
+		WithPolling(10*time.Second).
+		Should(BeTrue(), "default app '%s' was not reconciled at version '%s'", app.AppName, version)
+}
+
+// isDefaultAppAtVersion reports whether the cluster chart's App CR or HelmRelease for
+// appName is deployed at the given version.
+func isDefaultAppAtVersion(ctx context.Context, clusterName string, orgNamespace string, appName string, version string) (bool, error) {
+	mcClient := state.GetFramework().MC()
+
+	appList := &v1alpha1.AppList{}
+	if err := mcClient.List(ctx, appList, cr.InNamespace(orgNamespace)); err != nil {
+		return false, err
+	}
+	for _, appCR := range appList.Items {
+		if appCR.Spec.Name != appName {
+			continue
+		}
+		if requested := strings.TrimPrefix(appCR.Spec.Version, "v"); requested != version {
+			logger.Log("App '%s/%s' doesn't request version '%s' yet: spec.version='%s'", appCR.Namespace, appCR.Name, version, requested)
+			return false, nil
+		}
+		if deployed := strings.TrimPrefix(appCR.Status.Version, "v"); deployed != version {
+			logger.Log("App '%s/%s' is not yet at version '%s': status.version='%s'", appCR.Namespace, appCR.Name, version, deployed)
+			return false, nil
+		}
+		return wait.IsAppDeployed(ctx, mcClient, appCR.Name, appCR.Namespace)()
+	}
+
+	hrList := &helmv2.HelmReleaseList{}
+	if err := mcClient.List(ctx, hrList, cr.InNamespace(orgNamespace)); err != nil {
+		return false, err
+	}
+	for _, hr := range hrList.Items {
+		if !isHelmReleaseForApp(hr, clusterName, appName) {
+			continue
+		}
+		atVersion, err := client.IsHelmReleaseVersion(ctx, hr.Name, hr.Namespace, version)
+		if err != nil || !atVersion {
+			return false, err
+		}
+		return client.IsHelmReleaseReady(ctx, hr.Name, hr.Namespace)
+	}
+
+	logger.Log("No App CR or HelmRelease for default app '%s' found in namespace '%s' yet", appName, orgNamespace)
+	return false, nil
+}
+
+// isHelmReleaseForApp reports whether the given HelmRelease is the cluster chart's resource
+// for appName. The cluster chart names it after the app, either bare or prefixed with the
+// cluster name, and points it at a chart or OCIRepository of the same name, so any of those
+// is taken as a match.
+func isHelmReleaseForApp(hr helmv2.HelmRelease, clusterName string, appName string) bool {
+	if hr.Name == appName || hr.Name == fmt.Sprintf("%s-%s", clusterName, appName) {
+		return true
+	}
+	if hr.Spec.Chart != nil && hr.Spec.Chart.Spec.Chart == appName {
+		return true
+	}
+	if hr.Spec.ChartRef != nil && hr.Spec.ChartRef.Name == appName {
+		return true
+	}
+	return false
 }
 
 // getInstallApp returns the bundle App if it's set, otherwise it returns the App
