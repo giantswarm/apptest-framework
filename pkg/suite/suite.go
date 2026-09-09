@@ -35,6 +35,41 @@ import (
 	"github.com/giantswarm/apptest-framework/v5/pkg/state"
 )
 
+// installMode describes who installs the app under test. It determines every
+// install, upgrade, pre-check and uninstall step in the suite.
+type installMode int
+
+const (
+	// installModeApp: the framework creates an App CR itself.
+	installModeApp installMode = iota
+	// installModeHelmRelease: the framework creates an OCIRepository + HelmRelease itself.
+	installModeHelmRelease
+	// installModeDefaultApp: the cluster chart owns the resource (an App CR on older
+	// cluster charts, a HelmRelease on current ones). The framework never creates,
+	// updates or deletes it. The version under test is driven through the Release CR
+	// and the suite only asserts on the result, so WithHelmRelease does not apply.
+	installModeDefaultApp
+)
+
+// installMode returns the mode this suite runs in.
+//
+// Being a default app wins over WithHelmRelease: the cluster chart, not the suite,
+// decides whether a default app is rendered as an App CR or a HelmRelease, and
+// writing to that resource would fight the cluster chart's own reconciliation.
+//
+// This must only be called from inside a spec or setup node. isDefaultApp is resolved
+// in BeforeSuite, so it is not yet known when the spec tree is built.
+func (s *suite) installMode() installMode {
+	switch {
+	case s.isDefaultApp:
+		return installModeDefaultApp
+	case s.useHelmRelease:
+		return installModeHelmRelease
+	default:
+		return installModeApp
+	}
+}
+
 type suite struct {
 	// Set from TestConfig
 	appName     string
@@ -160,6 +195,10 @@ func (s *suite) WithBundleOverrideType(overrideType bundles.AppNameOverrideType)
 // When enabled, the framework will create a HelmRelease resource referencing the configured
 // source and chart, and wait for the Ready condition instead of the App deployed status.
 // Defaults to using an OCIRepository source — use WithHelmSourceKind to change.
+//
+// This only applies when the framework is the one installing the app. If the app under
+// test is a default app of the Release being tested, the cluster chart installs it (as a
+// HelmRelease on current cluster charts) and this setting is ignored.
 func (s *suite) WithHelmRelease(useHelmRelease bool) *suite {
 	s.useHelmRelease = useHelmRelease
 	return s
@@ -402,6 +441,10 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 			}
 		}
 
+		if s.isDefaultApp && s.useHelmRelease {
+			logger.Log("'%s' is a default app of the Release under test: WithHelmRelease is ignored, the cluster chart owns the App CR / HelmRelease and the version under test is driven through the Release", s.appName)
+		}
+
 		if s.isMCTest {
 			logger.Log("Confirming that we're working with an ephemeral MC for this MC App test suite")
 
@@ -534,12 +577,12 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 		}
 
 		By("Uninstalling App", func() {
-			if s.isDefaultApp {
-				Skip("App is a default app - skipping")
-				return
-			}
+			switch s.installMode() {
+			case installModeDefaultApp:
+				// Owned by the cluster chart, so it goes away with the cluster.
+				logger.Log("App is a default app - nothing to uninstall")
 
-			if s.useHelmRelease {
+			case installModeHelmRelease:
 				installName := s.getHelmReleaseName()
 				cfg := s.buildHelmReleaseConfig(installName, "")
 				logger.Log("Uninstalling HelmRelease %s/%s", cfg.Namespace, installName)
@@ -549,7 +592,8 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 					err = client.DeleteHelmSource(state.GetContext(), cfg)
 					Expect(err).NotTo(HaveOccurred())
 				}
-			} else {
+
+			case installModeApp:
 				app := getInstallApp()
 				logger.Log("Uninstalling App %s (%s)", app.AppName, app.InstallName)
 				err := state.GetFramework().MC().DeleteApp(state.GetContext(), *app)
@@ -564,12 +608,11 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 		}
 
 		It("Ensure app isn't already installed", func() {
-			if s.isDefaultApp {
-				Skip("App is a default app - skipping")
-				return
-			}
+			switch s.installMode() {
+			case installModeDefaultApp:
+				Skip("App is a default app - installed by the cluster chart")
 
-			if s.useHelmRelease {
+			case installModeHelmRelease:
 				installName := s.getHelmReleaseName()
 				cfg := s.buildHelmReleaseConfig(installName, "")
 				logger.Log("Checking that HelmRelease %s isn't already installed", installName)
@@ -583,7 +626,8 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 				err := state.GetFramework().MC().Get(state.GetContext(), cr.ObjectKeyFromObject(hr), hr)
 				Expect(err).ToNot(BeNil())
 				Expect(errors.IsNotFound(err)).To(BeTrue())
-			} else {
+
+			case installModeApp:
 				appCR := getInstallApp()
 
 				logger.Log("Checking that App %s isn't already installed", appCR.AppName)
@@ -603,12 +647,13 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 		if s.isUpgrade {
 			Describe("Install previous version of app", func() {
 				It("Install the latest release of the application", func() {
-					if s.isDefaultApp {
-						Skip("App is a default app - skipping")
-						return
-					}
+					switch s.installMode() {
+					case installModeDefaultApp:
+						// The cluster was created without the app override, so it already came
+						// up with the version the Release pins.
+						Skip("App is a default app - the previous version was installed with the cluster")
 
-					if s.useHelmRelease {
+					case installModeHelmRelease:
 						latestVersion, err := application.GetLatestAppVersion(s.repoName)
 						Expect(err).NotTo(HaveOccurred())
 						latestVersion = strings.TrimPrefix(latestVersion, "v")
@@ -620,7 +665,8 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 
 						cfg := s.buildHelmReleaseConfig(installName, latestVersion)
 						client.InstallHelmRelease(ctx, cfg)
-					} else {
+
+					case installModeApp:
 						var app *application.Application
 						if s.inBundleApp != "" {
 							cluster := state.GetCluster()
@@ -650,7 +696,32 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 
 		Describe("Install app", func() {
 			It("Install the application with the version to test", func() {
-				if s.useHelmRelease {
+				switch s.installMode() {
+				case installModeDefaultApp:
+					if !s.isUpgrade {
+						// The version under test was applied as a Release app override when the
+						// cluster was created, so there is nothing left to install here.
+						Skip("App is a default app - installed as part of the cluster")
+						return
+					}
+
+					// Upgrading a default app is a Release upgrade. The app's own App CR /
+					// HelmRelease is owned by the cluster chart and must not be written to.
+					cluster := state.GetCluster()
+					app := state.GetApplication()
+					bundleApp := state.GetBundleApplication()
+					if bundleApp != nil {
+						cluster = cluster.WithAppOverride(*bundleApp)
+					} else {
+						cluster = cluster.WithAppOverride(*app)
+					}
+
+					ctx, cancel := context.WithTimeout(state.GetContext(), 10*time.Minute)
+					defer cancel()
+					_, err := state.GetFramework().ApplyCluster(ctx, cluster)
+					Expect(err).ToNot(HaveOccurred())
+
+				case installModeHelmRelease:
 					appVersion := os.Getenv("E2E_APP_VERSION")
 					Expect(appVersion).NotTo(BeEmpty(), "E2E_APP_VERSION must be set for HelmRelease tests")
 					installName := s.getHelmReleaseName()
@@ -678,26 +749,8 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 						WithContext(ctx).
 						WithPolling(5 * time.Second).
 						Should(BeTrue())
-				} else if s.isDefaultApp && s.isUpgrade {
-					// If we're testing the upgrade of a default app we need to do so via a release upgrade
-					cluster := state.GetCluster()
-					app := state.GetApplication()
-					bundleApp := state.GetBundleApplication()
-					if bundleApp != nil {
-						cluster = cluster.WithAppOverride(*bundleApp)
-					} else {
-						cluster = cluster.WithAppOverride(*app)
-					}
 
-					ctx, cancel := context.WithTimeout(state.GetContext(), 10*time.Minute)
-					defer cancel()
-					_, err := state.GetFramework().ApplyCluster(ctx, cluster)
-					Expect(err).ToNot(HaveOccurred())
-
-				} else if s.isDefaultApp {
-					Skip("App is a default app - skipping")
-					return
-				} else {
+				case installModeApp:
 					app := getInstallApp()
 
 					ctx, cancel := context.WithTimeout(state.GetContext(), 5*time.Minute)
@@ -739,7 +792,6 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 
 					client.InstallApp(ctx, app)
 				}
-
 			})
 		})
 

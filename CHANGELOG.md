@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Default apps are no longer installed by the framework when `WithHelmRelease` is set, which overwrote the HelmRelease owned by the cluster chart.
+
 ## [5.2.6] - 2026-09-02
 
 ### Changed

@@ -174,6 +174,8 @@ Nothing special needs to be done to a test suite to make it compatible with a de
 
 One thing to be aware of when testing default apps is it's not possible to perform any actions before the installation of the App as it is done as part of the cluster creation.
 
+Because the cluster chart is the one installing a default app, it also decides whether that app is deployed as an `App` CR or as a Flux `HelmRelease` (current cluster charts use `HelmRelease`). A default app suite therefore does **not** need `WithHelmRelease(true)` to be tested as a `HelmRelease`, and setting it has no effect: the framework never writes to a resource the cluster chart owns, and drives the version under test through the Release instead. The setting is still honoured if the app turns out not to be a default app of the Release being tested.
+
 If testing an app within a bundle App that is a default App, the framework will detect that bundle App from the Release and patch it to make sure the App being tested is installed as a child App during the cluster installation phase.
 
 > [!TIP]
@@ -226,7 +228,7 @@ Use `WithHelmSourceURL` only if the chart lives outside `gsoci.azurecr.io/charts
 
 | Method | Description |
 | --- | --- |
-| `WithHelmRelease(bool)` | Enables HelmRelease mode. When `true`, creates a Flux `HelmRelease` CR instead of an `App` CR. |
+| `WithHelmRelease(bool)` | Enables HelmRelease mode. When `true`, creates a Flux `HelmRelease` CR instead of an `App` CR. Ignored for default apps, which the cluster chart installs (see [Testing Default Apps](#testing-default-apps)). |
 | `WithHelmSourceKind(SourceKind)` | Sets the source kind: `client.SourceKindOCIRepository` (default) or `client.SourceKindHelmRepository`. |
 | `WithHelmSourceURL(string)` | URL of the source CR. Defaults to `oci://gsoci.azurecr.io/charts/giantswarm` (HelmRepository) or `oci://gsoci.azurecr.io/charts/giantswarm/{chartName}` (OCIRepository). Set this only for non-GS registries. |
 | `WithHelmChartName(string)` | Name of the chart in the source registry. Defaults to `appName`. Set this when the chart name differs from the app install name. |
@@ -285,7 +287,7 @@ The `pkg/client` package provides helper functions for working with HelmRelease 
 | `client.IsAllHelmReleasesReady(ctx, c, names)` | Returns a check function for use with `Eventually` that waits for all listed HelmReleases to reach `Ready=True`. Mirrors `wait.IsAllAppDeployed`. |
 
 > [!NOTE]
-> `WithHelmRelease()` only controls how the **app under test** is deployed. The framework's wait-for-cluster-ready step at the start of every suite auto-detects whichever mechanism (App CR or HelmRelease) the cluster chart used for its default apps — test authors do not need to opt in.
+> `WithHelmRelease()` only controls how the **app under test** is deployed, and only when the framework is the one deploying it. If the app under test is a default app of the Release being tested, the cluster chart installs it and this setting is ignored — see [Testing Default Apps](#testing-default-apps). The framework's wait-for-cluster-ready step at the start of every suite likewise auto-detects whichever mechanism (App CR or HelmRelease) the cluster chart used for its default apps — test authors do not need to opt in.
 
 ### Accessing State
 
