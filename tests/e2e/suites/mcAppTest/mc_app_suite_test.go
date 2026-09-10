@@ -21,11 +21,23 @@ const (
 
 func TestMCApp(t *testing.T) {
 	installNamespace := "default"
+	// hello-world is installed via an OCIRepository + Flux HelmRelease (not an App CR)
+	// so that the platform's cluster-values aren't injected into the chart. hello-world
+	// v3.x sets `additionalProperties: false` at the schema root and would otherwise fail
+	// to install with a values-schema-violation. An explicit release name keeps the
+	// rendered Deployment name deterministic for the lookup. The framework installs it
+	// the way any app of a cluster is installed: a HelmRelease in the cluster's org
+	// namespace that reaches the cluster, here the MC itself, through its kubeconfig
+	// secret.
+	releaseName := "hello-world"
 
 	suite.New().
 		WithInstallNamespace(installNamespace).
 		WithIsUpgrade(isUpgrade).
 		WithValuesFile("./values.yaml").
+		WithHelmRelease(true).
+		WithHelmReleaseName(releaseName).
+		WithHelmTargetNamespace(installNamespace).
 		AfterClusterReady(func() {
 
 			It("should connect to the management cluster", func() {
@@ -59,7 +71,7 @@ func TestMCApp(t *testing.T) {
 				Eventually(func() error {
 					logger.Log("Checking if deployment exists in the workload cluster")
 					var dp appsv1.Deployment
-					err := wcClient.Get(state.GetContext(), types.NamespacedName{Namespace: installNamespace, Name: state.GetApplication().AppName}, &dp)
+					err := wcClient.Get(state.GetContext(), types.NamespacedName{Namespace: installNamespace, Name: releaseName}, &dp)
 					if err != nil {
 						logger.Log("Failed to get deployment: %v", err)
 					}

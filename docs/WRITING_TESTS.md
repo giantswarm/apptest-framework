@@ -239,14 +239,14 @@ Use `WithHelmSourceURL` only if the chart lives outside `gsoci.azurecr.io/charts
 | `WithHelmReleaseName(string)` | Helm release name (`spec.releaseName`). Defaults to the HelmRelease resource name. |
 | `WithHelmTimeout(time.Duration)` | Timeout for Helm operations. Defaults to 10 minutes. |
 | `WithHelmRetries(int)` | Number of retries for install/upgrade remediation. Defaults to 10. |
-| `WithHelmServiceAccountName(string)` | Service account to impersonate when reconciling. Defaults to `appName`; auto-created if missing. |
-| `WithHelmKubeConfigSecretName(string)` | Kubeconfig secret for remote cluster access. Defaults to `{clusterName}-kubeconfig` for workload cluster tests. |
+| `WithHelmServiceAccountName(string)` | Service account to impersonate when reconciling, which installs the chart into the cluster the HelmRelease lives in instead of through the cluster's kubeconfig. Only needed for resources the MC itself must own, such as app bundles. Auto-created if missing, so it must already hold the permissions to install the chart. |
+| `WithHelmKubeConfigSecretName(string)` | Kubeconfig secret used to reach the cluster. Defaults to the cluster's own `{clusterName}-kubeconfig`, unless a service account was set instead. |
 
 ### How It Works
 
 When HelmRelease mode is enabled, the framework will:
 
-1. Auto-configure defaults for workload cluster tests (namespace → cluster org namespace, kubeconfig secret → `{clusterName}-kubeconfig`).
+1. Auto-configure the defaults a Giant Swarm cluster expects (namespace → cluster org namespace, kubeconfig secret → `{clusterName}-kubeconfig`, storage namespace → target namespace). This applies to MC tests too: an MC is a CAPI cluster like any other, self-managed in `org-giantswarm`, so its apps are installed through its own kubeconfig secret rather than in-cluster.
 2. Create the source CR (`HelmRepository` or `OCIRepository`), defaulting to the GS OCI registry.
 3. Ensure required namespaces exist, creating them if needed.
 4. Ensure the service account exists, creating it if needed.
@@ -300,9 +300,9 @@ hr := state.GetHelmRelease()
 ```
 
 > [!IMPORTANT]
-> Giant Swarm MCs enforce a `flux-multi-tenancy` Kyverno policy that requires:
-> 1. `serviceAccountName` must be set on HelmReleases — use `WithHelmServiceAccountName()`
-> 2. `targetNamespace` must match `metadata.namespace` unless `kubeConfig` is set — make sure `WithInstallNamespace()` and `WithHelmTargetNamespace()` use the same namespace, or omit `WithHelmTargetNamespace()` entirely
+> Giant Swarm MCs enforce a `flux-multi-tenancy` Kyverno policy on HelmReleases outside the `flux-giantswarm`, `giantswarm` and `monitoring` namespaces:
+> 1. either `spec.serviceAccountName` or `spec.kubeConfig.secretRef.name` must be set — the kubeconfig secret the framework defaults to satisfies this
+> 2. `targetNamespace` and `storageNamespace` must match `metadata.namespace` unless `kubeConfig` is set — with the default kubeconfig secret in place, `WithHelmTargetNamespace()` can name any namespace in the cluster
 
 > [!NOTE]
 > HelmRelease mode cannot be combined with App Bundle mode (`InAppBundle`). If you need to test a chart within a bundle, use the standard App CR mode.
