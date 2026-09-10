@@ -35,6 +35,9 @@ const (
 
 	// DefaultGiantSwarmHelmRepositoryURL is the default OCI registry for Giant Swarm Helm charts.
 	DefaultGiantSwarmHelmRepositoryURL = "oci://gsoci.azurecr.io/charts/giantswarm"
+
+	// helmReleaseStatusDeployed is the Helm release status of a successfully deployed release.
+	helmReleaseStatusDeployed = "deployed"
 )
 
 // HelmReleaseConfig holds the configuration needed to create a HelmRelease CR.
@@ -159,7 +162,15 @@ func IsAllHelmReleasesReady(ctx context.Context, c cr.Client, helmReleases []typ
 	}
 }
 
-// IsHelmReleaseVersion checks if a HelmRelease has the expected chart version in its status history.
+// IsHelmReleaseVersion checks whether the chart version a HelmRelease has actually
+// deployed matches the expected one.
+//
+// The check is based on status.history, whose latest entry is the release helm-controller
+// has in storage. status.lastAttemptedRevision is deliberately not the primary source:
+// Flux sets it when it *begins* an upgrade, so a single poll can observe Ready=True (still
+// the old release) together with the new version, and a failed upgrade that rolled back
+// would satisfy it too. It is only used as a fallback for helm-controller versions that
+// don't populate status.history.
 func IsHelmReleaseVersion(ctx context.Context, name, namespace, version string) (bool, error) {
 	hr := &helmv2.HelmRelease{}
 	err := state.GetFramework().MC().Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, hr)
@@ -170,21 +181,40 @@ func IsHelmReleaseVersion(ctx context.Context, name, namespace, version string) 
 		return false, err
 	}
 
-	// Check spec.chart if using HelmRepository source
-	if hr.Spec.Chart != nil {
-		return logHelmReleaseVersion(name, version, hr.Spec.Chart.Spec.Version), nil
+	return helmReleaseAtVersion(hr, version), nil
+}
+
+// helmReleaseAtVersion reports whether the given HelmRelease has deployed the expected
+// chart version. Split out from IsHelmReleaseVersion so it can be unit tested.
+func helmReleaseAtVersion(hr *helmv2.HelmRelease, version string) bool {
+	name := hr.Name
+	expected := normaliseChartVersion(version)
+
+	if latest := hr.Status.History.Latest(); latest != nil {
+		if latest.Status != helmReleaseStatusDeployed {
+			logger.Log("HelmRelease '%s' has no deployed release yet: chartVersion='%s' status='%s'", name, latest.ChartVersion, latest.Status)
+			return false
+		}
+		return logHelmReleaseVersion(name, expected, normaliseChartVersion(latest.ChartVersion))
 	}
 
-	// For OCIRepository sources, check the last attempted revision in status.
-	// Flux appends a +<oci-digest> suffix (e.g. 0.0.1-abc123+4ef3415e2070) and
-	// version may carry a v prefix, so normalise both sides before comparing.
+	// Fallbacks for helm-controller versions that don't report a release history.
+	if hr.Spec.Chart != nil {
+		return logHelmReleaseVersion(name, expected, normaliseChartVersion(hr.Spec.Chart.Spec.Version))
+	}
 	if hr.Status.LastAttemptedRevision != "" {
-		rev := strings.SplitN(hr.Status.LastAttemptedRevision, "+", 2)[0]
-		return logHelmReleaseVersion(name, strings.TrimPrefix(version, "v"), rev), nil
+		return logHelmReleaseVersion(name, expected, normaliseChartVersion(hr.Status.LastAttemptedRevision))
 	}
 
 	logger.Log("HelmRelease version for '%s' is not yet known: expectedVersion='%s'", name, version)
-	return false, nil
+	return false
+}
+
+// normaliseChartVersion strips the OCI digest suffix Flux appends to a revision
+// (e.g. 0.0.1-abc123+4ef3415e2070) and any leading v, so both sides of a version
+// comparison can be brought into the same shape.
+func normaliseChartVersion(version string) string {
+	return strings.TrimPrefix(strings.SplitN(version, "+", 2)[0], "v")
 }
 
 // logHelmReleaseVersion logs the version comparison and reports whether it matches.
