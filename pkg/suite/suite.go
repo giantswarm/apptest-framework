@@ -280,15 +280,19 @@ func (s *suite) WithHelmRetries(retries int) *suite {
 }
 
 // WithHelmServiceAccountName sets the Kubernetes service account to impersonate
-// when reconciling the HelmRelease. If not set, defaults to the appName from config.
-// The service account is auto-created if it doesn't exist.
+// when reconciling the HelmRelease, which installs the chart into the cluster the
+// HelmRelease lives in rather than through the cluster's kubeconfig secret. Only needed
+// for resources the management cluster itself must own, such as app bundles.
+// The service account is auto-created if it doesn't exist, so it must be one that already
+// holds the permissions to install the chart.
 func (s *suite) WithHelmServiceAccountName(name string) *suite {
 	s.helmServiceAccountName = name
 	return s
 }
 
-// WithHelmKubeConfigSecretName sets the kubeconfig secret name for remote cluster access.
-// If not set, automatically configured as "{clusterName}-kubeconfig" for WC tests.
+// WithHelmKubeConfigSecretName sets the kubeconfig secret name used to reach the cluster.
+// If not set, defaults to the cluster's own "{clusterName}-kubeconfig" secret, unless a
+// service account to impersonate was set instead.
 func (s *suite) WithHelmKubeConfigSecretName(name string) *suite {
 	s.helmKubeConfigSecretName = name
 	return s
@@ -981,15 +985,6 @@ func cleanClusterName(clusterName string) string {
 	return strings.TrimPrefix(clusterName, "teleport.giantswarm.io-")
 }
 
-// getHelmServiceAccountName returns the service account name to use for the HelmRelease.
-// Defaults to the appName if not explicitly set.
-func (s *suite) getHelmServiceAccountName() string {
-	if s.helmServiceAccountName != "" {
-		return s.helmServiceAccountName
-	}
-	return s.appName
-}
-
 // getHelmReleaseName returns the name to use for the HelmRelease CR.
 func (s *suite) getHelmChartName() string {
 	if s.helmChartName != "" {
@@ -1034,40 +1029,48 @@ func (s *suite) loadValues() string {
 }
 
 // buildHelmReleaseConfig constructs a HelmReleaseConfig from suite settings,
-// applying smart defaults for WC deployments.
+// applying the defaults a Giant Swarm cluster expects.
+//
+// A cluster's apps are installed through a HelmRelease that lives in the cluster's org
+// namespace and reaches the cluster with the cluster's own kubeconfig secret. That holds
+// for a management cluster too: the MC is a CAPI cluster like any other, self-managed in
+// org-giantswarm, so an MC test needs the same shape rather than an in-cluster install.
+// Only resources the MC itself must own (app bundles, for example) are installed
+// in-cluster with an impersonated service account, which stays opt-in.
 func (s *suite) buildHelmReleaseConfig(installName, chartVersion string) client.HelmReleaseConfig {
 	cluster := state.GetCluster()
 	namespace := s.installNamespace
 	sourceNamespace := s.helmSourceNamespace
 	kubeConfigSecret := s.helmKubeConfigSecretName
-
-	// Auto-configure for WC HelmRelease tests
-	serviceAccountName := s.getHelmServiceAccountName()
+	serviceAccountName := s.helmServiceAccountName
 	storageNamespace := s.helmStorageNamespace
-	if !s.isMCTest {
-		// Use cluster org namespace if default
-		if namespace == "default" {
-			namespace = cluster.Organization.GetNamespace()
-			logger.Log("Auto-setting HelmRelease namespace to cluster org namespace: %s", namespace)
-		}
 
-		// Auto-set kubeconfig secret for WC access
-		if kubeConfigSecret == "" {
-			kubeConfigSecret = fmt.Sprintf("%s-kubeconfig", cluster.Name)
-			logger.Log("Auto-setting kubeconfig secret: %s", kubeConfigSecret)
-		}
+	// Use cluster org namespace if default
+	if namespace == "default" {
+		namespace = cluster.Organization.GetNamespace()
+		logger.Log("Auto-setting HelmRelease namespace to cluster org namespace: %s", namespace)
+	}
 
-		// WC HelmReleases use kubeConfig — setting serviceAccountName causes Flux to
-		// impersonate it on the MC instead of using the kubeconfig, which fails.
+	// Auto-set the cluster's kubeconfig secret unless the suite asked for an in-cluster
+	// install by naming a service account to impersonate.
+	if kubeConfigSecret == "" && serviceAccountName == "" {
+		kubeConfigSecret = fmt.Sprintf("%s-kubeconfig", cleanClusterName(cluster.Name))
+		logger.Log("Auto-setting kubeconfig secret: %s", kubeConfigSecret)
+	}
+
+	if kubeConfigSecret != "" && serviceAccountName != "" {
+		// Setting both causes Flux to impersonate the service account on the MC instead
+		// of using the kubeconfig, which fails.
+		logger.Log("Ignoring service account '%s': the HelmRelease reaches the cluster through kubeconfig secret '%s'", serviceAccountName, kubeConfigSecret)
 		serviceAccountName = ""
+	}
 
-		// Default storageNamespace to targetNamespace so Helm stores release secrets
-		// on the WC where the chart is installed (not the MC org namespace).
-		if storageNamespace == "" {
-			storageNamespace = s.helmTargetNamespace
-			if storageNamespace != "" {
-				logger.Log("Auto-setting HelmRelease storageNamespace to targetNamespace: %s", storageNamespace)
-			}
+	// Default storageNamespace to targetNamespace so Helm stores release secrets in the
+	// cluster the chart is installed into (not the MC org namespace).
+	if storageNamespace == "" {
+		storageNamespace = s.helmTargetNamespace
+		if storageNamespace != "" {
+			logger.Log("Auto-setting HelmRelease storageNamespace to targetNamespace: %s", storageNamespace)
 		}
 	}
 
