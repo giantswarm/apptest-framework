@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgrade suites for default apps now wait for the app to be reconciled at the version under test before running the tests.
 - `mcAppTest` e2e suite: install the `hello-world` test app via an `OCIRepository` + Flux `HelmRelease` instead of an `App` CR, matching the `basic` suite. The App CR path injects the cluster-values, which `hello-world` v3.x rejects.
 - HelmRelease mode now applies the same defaults to MC tests as to workload cluster tests: the HelmRelease is created in the cluster's org namespace and reaches the cluster through its own kubeconfig secret. A management cluster is a CAPI cluster like any other, so its apps are installed the same way. Previously an MC test got no kubeconfig secret and impersonated an auto-created service account that holds no permissions, so the install could not succeed.
+- `mcAppTest` e2e suite: turn off the `hello-world` chart's Ingress, which defaults to the `nginx` class that an MC has no IngressClass for, so the install was rejected by the load balancer controller's admission webhook.
 - `WithHelmServiceAccountName()` is now opt-in for the in-cluster installs that need it (app bundles, for example) instead of defaulting to a per-app service account, and it suppresses the kubeconfig secret default rather than being silently dropped.
 
 ## [5.2.6] - 2026-09-02

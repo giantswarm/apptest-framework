@@ -28,7 +28,8 @@ func TestMCApp(t *testing.T) {
 	// rendered Deployment name deterministic for the lookup. The framework installs it
 	// the way any app of a cluster is installed: a HelmRelease in the cluster's org
 	// namespace that reaches the cluster, here the MC itself, through its kubeconfig
-	// secret.
+	// secret. values.yaml turns the chart's Ingress off because it defaults to the
+	// `nginx` class, which an MC has no IngressClass for.
 	releaseName := "hello-world"
 
 	suite.New().
