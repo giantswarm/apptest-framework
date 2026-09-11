@@ -1,10 +1,8 @@
 package suite
 
 import (
+	"slices"
 	"testing"
-
-	helmv2 "github.com/fluxcd/helm-controller/api/v2"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestInstallMode(t *testing.T) {
@@ -51,55 +49,49 @@ func TestInstallMode(t *testing.T) {
 	}
 }
 
-func TestIsHelmReleaseForApp(t *testing.T) {
+func TestDefaultAppResourceNames(t *testing.T) {
 	testCases := []struct {
-		name     string
-		hr       helmv2.HelmRelease
-		expected bool
+		name      string
+		appName   string
+		chartName string
+		override  string
+		expected  []string
 	}{
 		{
-			name:     "bare app name",
-			hr:       helmv2.HelmRelease{ObjectMeta: metav1.ObjectMeta{Name: "cert-manager"}},
-			expected: true,
+			name:      "chart name equal to the app name",
+			appName:   "cert-manager",
+			chartName: "cert-manager",
+			expected:  []string{"test-cluster-cert-manager"},
 		},
 		{
-			name:     "cluster prefixed name",
-			hr:       helmv2.HelmRelease{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster-cert-manager"}},
-			expected: true,
+			// The cluster chart names the resource after the app, not after the chart, so
+			// the app name has to come first.
+			name:      "chart name differing from the app name",
+			appName:   "cluster-autoscaler",
+			chartName: "cluster-autoscaler-app",
+			expected:  []string{"test-cluster-cluster-autoscaler", "test-cluster-cluster-autoscaler-app"},
 		},
 		{
-			name: "matching chart name",
-			hr: helmv2.HelmRelease{
-				ObjectMeta: metav1.ObjectMeta{Name: "some-other-name"},
-				Spec: helmv2.HelmReleaseSpec{
-					Chart: &helmv2.HelmChartTemplate{
-						Spec: helmv2.HelmChartTemplateSpec{Chart: "cert-manager"},
-					},
-				},
-			},
-			expected: true,
+			name:     "no chart name known",
+			appName:  "security-bundle",
+			expected: []string{"test-cluster-security-bundle"},
 		},
 		{
-			name: "matching chart ref",
-			hr: helmv2.HelmRelease{
-				ObjectMeta: metav1.ObjectMeta{Name: "some-other-name"},
-				Spec: helmv2.HelmReleaseSpec{
-					ChartRef: &helmv2.CrossNamespaceSourceReference{Name: "cert-manager"},
-				},
-			},
-			expected: true,
-		},
-		{
-			name:     "unrelated release",
-			hr:       helmv2.HelmRelease{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster-coredns"}},
-			expected: false,
+			// aws-ebs-csi-driver is rendered from a hand-written template that names the
+			// resource after neither the app nor a chart name the suite knows.
+			name:      "explicit override wins",
+			appName:   "aws-ebs-csi-driver",
+			chartName: "aws-ebs-csi-driver",
+			override:  "aws-ebs-csi-driver-bundle",
+			expected:  []string{"test-cluster-aws-ebs-csi-driver-bundle"},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := isHelmReleaseForApp(tc.hr, "test-cluster", "cert-manager"); got != tc.expected {
-				t.Errorf("isHelmReleaseForApp() = %t, expected %t", got, tc.expected)
+			got := defaultAppResourceNames("test-cluster", tc.appName, tc.chartName, tc.override)
+			if !slices.Equal(got, tc.expected) {
+				t.Errorf("defaultAppResourceNames() = %v, expected %v", got, tc.expected)
 			}
 		})
 	}

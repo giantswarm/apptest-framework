@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `mcAppTest` e2e suite: turn off the `hello-world` chart's Ingress, which defaults to the `nginx` class that an MC has no IngressClass for, so the install was rejected by the load balancer controller's admission webhook.
 - `WithHelmServiceAccountName()` is now opt-in for the in-cluster installs that need it (app bundles, for example) instead of defaulting to a per-app service account, and it suppresses the kubeconfig secret default rather than being silently dropped.
 - HelmRelease version assertions now check the deployed release instead of the attempted revision, so an upgrade that is only starting or that rolled back no longer passes.
+- Non-upgrade default app suites now wait for the app to be deployed at the version under test instead of skipping the install step and asserting nothing. A Release app override that silently did not take effect now fails the suite rather than having it test the Release's version.
+
+### Added
+
+- `WithDefaultAppName()` sets the name the cluster chart gives a default app's App CR / HelmRelease, for the few apps named after neither the app name nor the chart name.
 
 ## [5.2.6] - 2026-09-02
 
