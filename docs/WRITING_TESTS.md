@@ -176,7 +176,11 @@ One thing to be aware of when testing default apps is it's not possible to perfo
 
 Because the cluster chart is the one installing a default app, it also decides whether that app is deployed as an `App` CR or as a Flux `HelmRelease` (current cluster charts use `HelmRelease`). A default app suite therefore does **not** need `WithHelmRelease(true)` to be tested as a `HelmRelease`, and setting it has no effect: the framework never writes to a resource the cluster chart owns, and drives the version under test through the Release instead. The setting is still honoured if the app turns out not to be a default app of the Release being tested.
 
-If testing an app within a bundle App that is a default App, the framework will detect that bundle App from the Release and patch it to make sure the App being tested is installed as a child App during the cluster installation phase.
+The suite asserts that the version under test is the one that actually got deployed, on both the install and the upgrade path. A default app is installed and upgraded through the Release CR, and neither the cluster-ready wait nor the Release update itself checks the app's version, so an app override that silently does not take effect would otherwise leave the suite testing whichever version the Release pins.
+
+The framework finds the resource the cluster chart owns by name: `<cluster>-<appName>`, falling back to `<cluster>-<chartName>` and then to a scan of the org namespace. A few apps are rendered from a hand-written template that names the resource after neither (`<cluster>-aws-ebs-csi-driver-bundle` for the app named `aws-ebs-csi-driver`) — use `WithDefaultAppName("aws-ebs-csi-driver-bundle")` for those.
+
+If testing an app within a bundle App that is a default App, the framework will detect that bundle App from the Release and patch it to make sure the App being tested is installed as a child App during the cluster installation phase. The version assertion then applies to the bundle, which is the app the Release pins.
 
 > [!TIP]
 > Example: [tests/e2e/suites/defaultapp](https://github.com/giantswarm/apptest-framework/blob/534f57426d183921e042e09cf6694ac2756d3862/tests/e2e/suites/defaultapp/defaultapp_suite_test.go)
