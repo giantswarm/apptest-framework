@@ -616,10 +616,8 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 				logger.Log("Uninstalling HelmRelease %s/%s", cfg.Namespace, installName)
 				err := client.DeleteHelmRelease(state.GetContext(), installName, cfg.Namespace)
 				Expect(err).NotTo(HaveOccurred())
-				if cfg.SourceURL != "" {
-					err = client.DeleteHelmSource(state.GetContext(), cfg)
-					Expect(err).NotTo(HaveOccurred())
-				}
+				err = client.DeleteHelmSource(state.GetContext(), cfg)
+				Expect(err).NotTo(HaveOccurred())
 
 			case installModeApp:
 				app := getInstallApp()

@@ -59,11 +59,11 @@ type HelmReleaseConfig struct {
 	// SourceNamespace is the namespace of the source reference.
 	// If empty, defaults to the HelmRelease namespace.
 	SourceNamespace string
-	// SourceURL is the URL of the source to create automatically.
+	// SourceURL is the URL of the source to create.
 	// For SourceKindHelmRepository: an OCI URL ("oci://registry/path") or HTTPS URL.
 	// For SourceKindOCIRepository: an OCI URL ("oci://registry/path/chart").
-	// When set, the framework creates the source CR before installing the HelmRelease.
-	// If empty, the source CR must already exist in the cluster.
+	// If empty, the Giant Swarm registry is used. The framework creates the source CR
+	// before installing the HelmRelease either way.
 	SourceURL string
 	// Values is the raw values YAML to pass to the chart.
 	Values string
@@ -212,12 +212,10 @@ func DeleteHelmRelease(ctx context.Context, name, namespace string) error {
 }
 
 // DeleteHelmSource deletes the source CR (HelmRepository or OCIRepository) backing the
-// HelmRelease. It is a no-op if SourceURL is empty, as the source is then assumed to be
-// one the framework did not create.
+// HelmRelease. InstallHelmRelease always ensures the source, also when SourceURL is empty
+// and the default registry URL is used, so it is always cleaned up here. Leaving it behind
+// pins the next run to this run's chart version, as an existing source is never updated.
 func DeleteHelmSource(ctx context.Context, cfg HelmReleaseConfig) error {
-	if cfg.SourceURL == "" {
-		return nil
-	}
 	return helmrelease.DeleteSource(ctx, state.GetFramework().MC(), cfg.source())
 }
 
