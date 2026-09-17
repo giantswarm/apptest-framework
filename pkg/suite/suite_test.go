@@ -10,6 +10,7 @@ func TestInstallMode(t *testing.T) {
 		name           string
 		isDefaultApp   bool
 		useHelmRelease bool
+		inBundleApp    string
 		expected       installMode
 	}{
 		{
@@ -34,6 +35,26 @@ func TestInstallMode(t *testing.T) {
 			useHelmRelease: true,
 			expected:       installModeDefaultApp,
 		},
+		{
+			name:        "InAppBundle on its own installs App CRs",
+			inBundleApp: "security-bundle",
+			expected:    installModeApp,
+		},
+		{
+			name:           "InAppBundle with WithHelmRelease installs the bundle as a HelmRelease",
+			useHelmRelease: true,
+			inBundleApp:    "security-bundle",
+			expected:       installModeBundleHelmRelease,
+		},
+		{
+			// A bundle the Release ships is the cluster chart's to install, whatever the
+			// suite asked for.
+			name:           "a default app bundle stays a default app",
+			isDefaultApp:   true,
+			useHelmRelease: true,
+			inBundleApp:    "security-bundle",
+			expected:       installModeDefaultApp,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -41,6 +62,7 @@ func TestInstallMode(t *testing.T) {
 			s := &suite{
 				isDefaultApp:   tc.isDefaultApp,
 				useHelmRelease: tc.useHelmRelease,
+				inBundleApp:    tc.inBundleApp,
 			}
 			if got := s.installMode(); got != tc.expected {
 				t.Errorf("installMode() = %d, expected %d", got, tc.expected)
@@ -92,6 +114,60 @@ func TestDefaultAppResourceNames(t *testing.T) {
 			got := defaultAppResourceNames("test-cluster", tc.appName, tc.chartName, tc.override)
 			if !slices.Equal(got, tc.expected) {
 				t.Errorf("defaultAppResourceNames() = %v, expected %v", got, tc.expected)
+			}
+		})
+	}
+}
+
+func TestValidate(t *testing.T) {
+	testCases := []struct {
+		name           string
+		isMCTest       bool
+		useHelmRelease bool
+		inBundleApp    string
+		expectErr      bool
+	}{
+		{
+			name: "a plain suite is valid",
+		},
+		{
+			name:        "a bundle suite on a workload cluster is valid",
+			inBundleApp: "security-bundle",
+		},
+		{
+			name:     "an MC suite without a bundle is valid",
+			isMCTest: true,
+		},
+		{
+			// Bundle children hardcode `<clusterID>-kubeconfig`, which does not exist when
+			// the MC itself is the target. Unsupported on both install paths.
+			name:        "an MC bundle suite is rejected in App CR mode",
+			isMCTest:    true,
+			inBundleApp: "security-bundle",
+			expectErr:   true,
+		},
+		{
+			name:           "an MC bundle suite is rejected in HelmRelease mode",
+			isMCTest:       true,
+			useHelmRelease: true,
+			inBundleApp:    "security-bundle",
+			expectErr:      true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			s := &suite{
+				isMCTest:       tc.isMCTest,
+				useHelmRelease: tc.useHelmRelease,
+				inBundleApp:    tc.inBundleApp,
+			}
+			err := s.validate()
+			if tc.expectErr && err == nil {
+				t.Errorf("validate() = nil, expected an error")
+			}
+			if !tc.expectErr && err != nil {
+				t.Errorf("validate() = %v, expected no error", err)
 			}
 		})
 	}

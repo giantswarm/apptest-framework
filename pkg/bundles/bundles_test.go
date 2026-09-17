@@ -173,3 +173,99 @@ func TestOverrideChildOmitsEmptyValues(t *testing.T) {
 		t.Fatalf("Expected the version to be set in the values layer, got:\n%s", result.Values)
 	}
 }
+
+func TestChildValues(t *testing.T) {
+	child := ChildOverride{
+		AppName:   "cluster-autoscaler",
+		ChartName: "cluster-autoscaler-app",
+		Catalog:   "giantswarm",
+		Version:   "1.2.3",
+		Namespace: "kube-system",
+	}
+
+	testCases := []struct {
+		name         string
+		bundleName   string
+		overrideType AppNameOverrideType
+		expectedKey  string
+		expectEmpty  bool
+		expectErr    bool
+	}{
+		{
+			name:         "a camelCase bundle keys its children in camelCase",
+			bundleName:   "security-bundle",
+			overrideType: AppNameOverrideAuto,
+			expectedKey:  "clusterAutoscaler",
+		},
+		{
+			name:         "a hyphenated bundle keys its children with hyphens",
+			bundleName:   "service-mesh-bundle",
+			overrideType: AppNameOverrideAuto,
+			expectedKey:  "cluster-autoscaler",
+		},
+		{
+			name:         "an explicit override type doesn't need a known bundle",
+			bundleName:   "some-unknown-bundle",
+			overrideType: AppNameOverrideCamelCase,
+			expectedKey:  "clusterAutoscaler",
+		},
+		{
+			name:         "an unknown bundle can't be auto-detected",
+			bundleName:   "some-unknown-bundle",
+			overrideType: AppNameOverrideAuto,
+			expectErr:    true,
+		},
+		{
+			name:         "no override produces no layer",
+			bundleName:   "security-bundle",
+			overrideType: AppNameOverrideNone,
+			expectEmpty:  true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			layer, err := ChildValues(tc.bundleName, child, tc.overrideType)
+			if tc.expectErr {
+				if err == nil {
+					t.Fatalf("ChildValues() = nil error, expected an error")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("ChildValues() returned an error: %v", err)
+			}
+			if tc.expectEmpty {
+				if layer != "" {
+					t.Fatalf("ChildValues() = %q, expected an empty layer", layer)
+				}
+				return
+			}
+
+			var got bundleValues
+			if err := yaml.Unmarshal([]byte(layer), &got); err != nil {
+				t.Fatalf("layer is not valid YAML: %v", err)
+			}
+
+			values, ok := got.Apps[tc.expectedKey]
+			if !ok {
+				t.Fatalf("layer has no entry for %q, got %v", tc.expectedKey, got.Apps)
+			}
+			if !values.Enabled {
+				t.Errorf("child is not enabled")
+			}
+			if values.Version != "1.2.3" {
+				t.Errorf("version = %q, expected 1.2.3", values.Version)
+			}
+			if values.ChartName != "cluster-autoscaler-app" {
+				t.Errorf("chartName = %q, expected cluster-autoscaler-app", values.ChartName)
+			}
+			if values.AppName != "cluster-autoscaler" {
+				t.Errorf("appName = %q, expected cluster-autoscaler", values.AppName)
+			}
+			if values.Namespace != "kube-system" {
+				t.Errorf("namespace = %q, expected kube-system", values.Namespace)
+			}
+		})
+	}
+}

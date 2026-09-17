@@ -10,10 +10,12 @@ import (
 	"github.com/giantswarm/clustertest/v5/pkg/helmrelease"
 	"github.com/giantswarm/clustertest/v5/pkg/logger"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	cr "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 
 	"github.com/giantswarm/apptest-framework/v5/pkg/state"
 
@@ -79,6 +81,16 @@ type HelmReleaseConfig struct {
 	// KubeConfigSecretName is the name of the secret containing kubeconfig for remote cluster access.
 	// Required when deploying to a workload cluster from the management cluster.
 	KubeConfigSecretName string
+	// InCluster installs the chart into the cluster the HelmRelease itself lives in, under the
+	// impersonated ServiceAccountName and with no kubeConfig. The target namespace is not
+	// created by Helm in this case: an impersonated service account is scoped to a namespace
+	// that already exists, and Helm's --create-namespace only tolerates AlreadyExists, not the
+	// Forbidden it would get back.
+	InCluster bool
+	// InlineValues writes Values to spec.values instead of to a referenced Secret.
+	// helm-controller does not watch valuesFrom sources, so only an inline change reconciles
+	// immediately. Use it whenever the values themselves are what a test step changes.
+	InlineValues bool
 }
 
 // source describes the Flux source CR the HelmRelease pulls its chart from. The kind,
@@ -130,12 +142,18 @@ func InstallHelmRelease(ctx context.Context, cfg HelmReleaseConfig) {
 	err := helmrelease.EnsureSource(ctx, state.GetFramework().MC(), source)
 	Expect(err).NotTo(HaveOccurred())
 
-	// Ensure the service account exists
+	// Ensure the service account exists. An in-cluster install impersonates a service account
+	// that must already hold the permissions to install the chart, so it is required rather
+	// than created.
 	if cfg.ServiceAccountName != "" {
-		ensureServiceAccount(ctx, cfg.ServiceAccountName, cfg.Namespace)
+		if cfg.InCluster {
+			requireServiceAccount(ctx, cfg.ServiceAccountName, cfg.Namespace)
+		} else {
+			ensureServiceAccount(ctx, cfg.ServiceAccountName, cfg.Namespace)
+		}
 	}
 
-	if cfg.Values != "" {
+	if cfg.Values != "" && !cfg.InlineValues {
 		createValuesSecret(ctx, cfg.Name, cfg.Namespace, cfg.Values)
 	}
 
@@ -242,7 +260,7 @@ func buildHelmRelease(cfg HelmReleaseConfig) *helmv2.HelmRelease {
 				Remediation: &helmv2.InstallRemediation{
 					Retries: retries,
 				},
-				CreateNamespace: true,
+				CreateNamespace: !cfg.InCluster,
 			},
 			Upgrade: &helmv2.Upgrade{
 				Remediation: &helmv2.UpgradeRemediation{
@@ -296,10 +314,16 @@ func buildHelmRelease(cfg HelmReleaseConfig) *helmv2.HelmRelease {
 	}
 
 	if cfg.Values != "" {
-		hr.Spec.ValuesFrom = append(hr.Spec.ValuesFrom, helmv2.ValuesReference{
-			Kind: "Secret",
-			Name: fmt.Sprintf("%s-values", cfg.Name),
-		})
+		if cfg.InlineValues {
+			raw, err := yaml.YAMLToJSON([]byte(cfg.Values))
+			Expect(err).NotTo(HaveOccurred())
+			hr.Spec.Values = &apiextensionsv1.JSON{Raw: raw}
+		} else {
+			hr.Spec.ValuesFrom = append(hr.Spec.ValuesFrom, helmv2.ValuesReference{
+				Kind: "Secret",
+				Name: fmt.Sprintf("%s-values", cfg.Name),
+			})
+		}
 	}
 
 	if cfg.KubeConfigSecretName != "" {
@@ -359,6 +383,71 @@ func UpdateHelmReleaseVersion(ctx context.Context, cfg HelmReleaseConfig, versio
 		err = state.GetFramework().MC().Update(ctx, hr, &cr.UpdateOptions{})
 		Expect(err).NotTo(HaveOccurred())
 	}
+}
+
+// UpdateHelmReleaseValues rewrites spec.values on an existing HelmRelease.
+//
+// Writing the spec bumps metadata.generation, so helm-controller picks the change up straight
+// away. A values Secret referenced through valuesFrom would not: helm-controller does not watch
+// those, so the new values would only land on the next reconcile interval, if at all.
+func UpdateHelmReleaseValues(ctx context.Context, name, namespace, values string) error {
+	raw, err := yaml.YAMLToJSON([]byte(values))
+	if err != nil {
+		return fmt.Errorf("converting values for HelmRelease %s/%s: %w", namespace, name, err)
+	}
+
+	hr := &helmv2.HelmRelease{}
+	if err := state.GetFramework().MC().Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, hr); err != nil {
+		return fmt.Errorf("getting HelmRelease %s/%s: %w", namespace, name, err)
+	}
+
+	hr.Spec.Values = &apiextensionsv1.JSON{Raw: raw}
+	if err := state.GetFramework().MC().Update(ctx, hr, &cr.UpdateOptions{}); err != nil {
+		return fmt.Errorf("updating values of HelmRelease %s/%s: %w", namespace, name, err)
+	}
+
+	state.SetHelmRelease(hr)
+
+	return nil
+}
+
+// WaitForHelmReleaseDeleted blocks until the named HelmRelease is gone from the API, or the
+// context expires.
+//
+// Deleting a HelmRelease only starts the uninstall: helm-controller holds a finalizer until it
+// has run, and anything the release created is still in place until then.
+func WaitForHelmReleaseDeleted(ctx context.Context, name, namespace string) error {
+	for {
+		hr := &helmv2.HelmRelease{}
+		err := state.GetFramework().MC().Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, hr)
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		if err != nil {
+			return fmt.Errorf("getting HelmRelease %s/%s: %w", namespace, name, err)
+		}
+
+		logger.Log("Waiting for HelmRelease %s/%s to finish uninstalling", namespace, name)
+
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("waiting for HelmRelease %s/%s to be deleted: %w", namespace, name, ctx.Err())
+		case <-time.After(5 * time.Second):
+		}
+	}
+}
+
+// requireServiceAccount fails the suite when the service account to impersonate does not exist.
+//
+// Creating it, the way ensureServiceAccount does, produces a service account with no
+// permissions at all, which turns a missing prerequisite into an opaque RBAC failure minutes
+// later and leaves the service account behind.
+func requireServiceAccount(ctx context.Context, name, namespace string) {
+	GinkgoHelper()
+
+	sa := &corev1.ServiceAccount{}
+	err := state.GetFramework().MC().Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, sa)
+	Expect(err).NotTo(HaveOccurred(), "ServiceAccount '%s/%s' must already exist and hold the permissions to install the chart", namespace, name)
 }
 
 // ensureServiceAccount creates a service account if it doesn't already exist.
