@@ -1,6 +1,7 @@
 package bundles
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/giantswarm/clustertest/v5/pkg/application"
@@ -104,5 +105,71 @@ func TestOverrideChildApp(t *testing.T) {
 				t.Fatalf("Version didn't match expected. Expected '%s', Actual: '%s'", tc.childApp.Version, childAppValues.Version)
 			}
 		})
+	}
+}
+
+// TestOverrideChildChartName covers the chart name a bundle child is pulled under: it
+// defaults to the app name, and an explicitly published chart name takes over.
+func TestOverrideChildChartName(t *testing.T) {
+	tests := []struct {
+		name          string
+		child         ChildOverride
+		expectedChart string
+	}{
+		{
+			name:          "chart name defaults to the app name",
+			child:         ChildOverride{AppName: "kyverno-policies", Version: "1.2.3"},
+			expectedChart: "kyverno-policies",
+		},
+		{
+			name:          "published chart name differs from the app name",
+			child:         ChildOverride{AppName: "cluster-autoscaler", ChartName: "cluster-autoscaler-app", Version: "1.2.3"},
+			expectedChart: "cluster-autoscaler-app",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			bundleApp := application.New("test-security-bundle", "security-bundle")
+
+			result, err := OverrideChild(bundleApp, tc.child, AppNameOverrideAuto)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			var values bundleValues
+			_ = yaml.Unmarshal([]byte(result.Values), &values)
+
+			childValues, ok := values.Apps[toCamelCase(tc.child.AppName)]
+			if !ok {
+				t.Fatalf("Didn't find expected child app values")
+			}
+
+			if childValues.ChartName != tc.expectedChart {
+				t.Fatalf("ChartName didn't match expected. Expected '%s', Actual: '%s'", tc.expectedChart, childValues.ChartName)
+			}
+		})
+	}
+}
+
+// TestOverrideChildOmitsEmptyValues checks that a field the suite didn't set is left out
+// of the values layer entirely, so the bundle chart's own default applies instead of
+// being overridden with an empty string.
+func TestOverrideChildOmitsEmptyValues(t *testing.T) {
+	bundleApp := application.New("test-security-bundle", "security-bundle")
+
+	result, err := OverrideChild(bundleApp, ChildOverride{AppName: "kyverno-policies", Version: "1.2.3"}, AppNameOverrideAuto)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	for _, key := range []string{"catalog:", "namespace:"} {
+		if strings.Contains(result.Values, key) {
+			t.Fatalf("Expected '%s' to be omitted from the values layer, got:\n%s", key, result.Values)
+		}
+	}
+
+	if !strings.Contains(result.Values, "version: 1.2.3") {
+		t.Fatalf("Expected the version to be set in the values layer, got:\n%s", result.Values)
 	}
 }

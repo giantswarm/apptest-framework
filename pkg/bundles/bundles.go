@@ -29,8 +29,23 @@ const (
 // to have it install the desired version of the child app.
 // The overrideType specifies the naming convention for the child app.
 // If set to AppNameOverrideAuto, it will attempt to auto-detect based on the bundle app name.
+//
+// The child's chart name is assumed to match its app name. Use [OverrideChild] for a child
+// whose chart is published under a different name.
 func OverrideChildApp(bundleApp *application.Application, childApp *application.Application, overrideType AppNameOverrideType) (*application.Application, error) {
-	appName := childApp.AppName
+	return OverrideChild(bundleApp, ChildOverride{
+		AppName:   childApp.AppName,
+		Catalog:   childApp.Catalog,
+		Version:   childApp.Version,
+		Namespace: childApp.InstallNamespace,
+	}, overrideType)
+}
+
+// OverrideChild sets the values of the bundle app so that it installs the described child.
+// The overrideType specifies the naming convention for the child app.
+// If set to AppNameOverrideAuto, it will attempt to auto-detect based on the bundle app name.
+func OverrideChild(bundleApp *application.Application, child ChildOverride, overrideType AppNameOverrideType) (*application.Application, error) {
+	appName := child.AppName
 
 	switch overrideType {
 	case AppNameOverrideNone:
@@ -51,15 +66,20 @@ func OverrideChildApp(bundleApp *application.Application, childApp *application.
 		}
 	}
 
+	chartName := child.ChartName
+	if chartName == "" {
+		chartName = child.AppName
+	}
+
 	overrideValues := bundleValues{
 		Apps: map[string]appValues{
 			appName: {
 				Enabled:   true,
-				Catalog:   childApp.Catalog,
-				Version:   childApp.Version,
-				AppName:   childApp.AppName,
-				ChartName: childApp.AppName,
-				Namespace: childApp.InstallNamespace,
+				Catalog:   child.Catalog,
+				Version:   child.Version,
+				AppName:   child.AppName,
+				ChartName: chartName,
+				Namespace: child.Namespace,
 			},
 		},
 	}

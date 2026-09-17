@@ -456,8 +456,16 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 				MustWithValues(fmt.Sprintf("clusterID: %s", cluster.Name), &application.TemplateValues{}).
 				WithInCluster(true)
 
-			// Replace app with bundle app that has version of child App set
-			bundleApp, err := bundles.OverrideChildApp(bundleApp, app, s.inBundleAppOverrideType)
+			// Replace app with bundle app that has version of child App set. The chart
+			// name is passed explicitly: it is not always the app name, and a bundle that
+			// renders its children as HelmReleases pulls the chart by that name.
+			bundleApp, err := bundles.OverrideChild(bundleApp, bundles.ChildOverride{
+				AppName:   app.AppName,
+				ChartName: s.getHelmChartName(),
+				Catalog:   app.Catalog,
+				Version:   app.Version,
+				Namespace: app.InstallNamespace,
+			}, s.inBundleAppOverrideType)
 			Expect(err).NotTo(HaveOccurred())
 			state.SetBundleApplication(bundleApp)
 
