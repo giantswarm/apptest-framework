@@ -5,6 +5,7 @@ go 1.27.1
 replace github.com/giantswarm/apptest-framework/v5 => ../../
 
 require (
+	github.com/fluxcd/helm-controller/api v1.6.4
 	github.com/giantswarm/apptest-framework/v5 v5.2.6
 	github.com/giantswarm/clustertest/v5 v5.6.0
 	github.com/onsi/ginkgo/v2 v2.32.2
@@ -43,7 +44,6 @@ require (
 	github.com/extism/go-sdk v1.7.1 // indirect
 	github.com/fatih/color v1.19.0 // indirect
 	github.com/fluxcd/cli-utils v1.3.0 // indirect
-	github.com/fluxcd/helm-controller/api v1.6.4 // indirect
 	github.com/fluxcd/pkg/apis/acl v0.11.0 // indirect
 	github.com/fluxcd/pkg/apis/kustomize v1.21.0 // indirect
 	github.com/fluxcd/pkg/apis/meta v1.32.0 // indirect

@@ -190,7 +190,7 @@ The framework finds the resource the cluster chart owns by name: `<cluster>-<app
 If testing an app within a bundle App that is a default App, the framework will detect that bundle App from the Release and patch it to make sure the App being tested is installed as a child App during the cluster installation phase. The version assertion then applies to the bundle, which is the app the Release pins.
 
 > [!TIP]
-> Example: [tests/e2e/suites/defaultapp](https://github.com/giantswarm/apptest-framework/blob/534f57426d183921e042e09cf6694ac2756d3862/tests/e2e/suites/defaultapp/defaultapp_suite_test.go)
+> Examples: [tests/e2e/suites/defaultapp](https://github.com/giantswarm/apptest-framework/blob/main/tests/e2e/suites/defaultapp/defaultapp_suite_test.go), and [tests/e2e/suites/defaultapphelmrelease](https://github.com/giantswarm/apptest-framework/blob/main/tests/e2e/suites/defaultapphelmrelease/defaultapphelmrelease_suite_test.go) for the same app with `WithHelmRelease(true)` set.
 
 ## Testing Apps on Management Clusters
 
@@ -254,6 +254,7 @@ Use `WithHelmSourceURL` only if the chart lives outside `gsoci.azurecr.io/charts
 | `WithHelmRetries(int)` | Number of retries for install/upgrade remediation. Defaults to 10. |
 | `WithHelmServiceAccountName(string)` | Service account to impersonate when reconciling, which installs the chart into the cluster the HelmRelease lives in instead of through the cluster's kubeconfig. Only needed for resources the MC itself must own, such as app bundles. Auto-created if missing, so it must already hold the permissions to install the chart. |
 | `WithHelmKubeConfigSecretName(string)` | Kubeconfig secret used to reach the cluster. Defaults to the cluster's own `{clusterName}-kubeconfig`, unless a service account was set instead. |
+| `WithClusterValues(bool)` | Merges the cluster's `{clusterName}-cluster-values` ConfigMap below your own values. Off by default — see [Values](#values). |
 
 ### How It Works
 
@@ -263,11 +264,29 @@ When HelmRelease mode is enabled, the framework will:
 2. Ensure required namespaces exist, creating them if needed.
 3. Create the source CR (`HelmRepository` or `OCIRepository`), defaulting to the GS OCI registry.
 4. Ensure the service account exists, creating it if needed.
-5. Create a `Secret` containing chart values if a values file is provided.
+5. Render your values file and create a `Secret` with the result, referenced by the HelmRelease (see [Values](#values)).
 6. Create the `HelmRelease` CR referencing the source.
 7. Wait for the HelmRelease `Ready` condition to become `True`.
 8. Run your test cases.
 9. Delete the `HelmRelease`, values `Secret`, and source CR during cleanup.
+
+### Values
+
+Your `values.yaml` is rendered as a Go template before it is installed, in both install modes. `{{ .ClusterName }}`, `{{ .Namespace }}` (the cluster's org namespace) and `{{ .Organization }}` are substituted; a missing or empty file means no values.
+
+In HelmRelease mode the rendered values are written to a `{helmReleaseName}-values` Secret that the HelmRelease references. Nothing else is merged into them by default, which is the one real difference from the `App` CR path: app-operator injects the cluster's `{clusterName}-cluster-values` ConfigMap into every App CR it reconciles, and no such thing happens under Flux. If your chart reads values that come from there (`.Values.global`, `.Values.baseDomain` and friends), opt in:
+
+```go
+suite.New().
+  WithHelmRelease(true).
+  WithClusterValues(true).
+  WithValuesFile("./values.yaml").
+  ...etc...
+```
+
+It is off by default because the ConfigMap carries the full cluster values, and a chart with `additionalProperties: false` at its schema root rejects them outright.
+
+When several values sources are in play they are merged the way the App platform merges config: all ConfigMaps before all Secrets, each by ascending priority, with your own values file last so it always wins.
 
 ### Upgrade Tests with HelmRelease
 

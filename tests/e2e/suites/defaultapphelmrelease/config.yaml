@@ -1,0 +1,13 @@
+# Note: This isn't actually used by the tests as we test different apps in different suites
+
+# cluster-autoscaler is a default app of every Release, and current cluster charts install it
+# as a Flux HelmRelease. The same app as the `defaultapp` suite, with `WithHelmRelease(true)`
+# set, to cover that the setting is ignored for a default app rather than hijacking the
+# resource the cluster chart owns.
+appName: "cluster-autoscaler"
+repoName: "cluster-autoscaler-app"
+appCatalog: "default"
+
+# CAPI providers to test against when triggering `/run app-test-suites` from a PR
+providers:
+- capa
