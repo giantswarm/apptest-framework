@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `WithDefaultAppName()` sets the name the cluster chart gives a default app's App CR / HelmRelease, for the few apps named after neither the app name nor the chart name.
+
+### Changed
+
+- Go: Update `clustertest` to v5.6.0 and delegate the Flux source and HelmRelease version handling to it. Sources are now created as `source.toolkit.fluxcd.io/v1`, which the client scheme registers, so the framework no longer registers it itself. This requires source-controller v1.6 (Flux 2.6) or newer. An `OCIRepository` without a chart version now resolves through the `*` semver range instead of the `latest` tag, which excludes pre-release versions.
+- Go: Update dependencies.
+
 ### Fixed
 
 - Default apps are no longer installed by the framework when `WithHelmRelease` is set, which overwrote the HelmRelease owned by the cluster chart.
@@ -18,14 +27,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - HelmRelease version assertions now check the deployed release instead of the attempted revision, so an upgrade that is only starting or that rolled back no longer passes.
 - Non-upgrade default app suites now wait for the app to be deployed at the version under test instead of skipping the install step and asserting nothing. A Release app override that silently did not take effect now fails the suite rather than having it test the Release's version.
 - The Flux source CR is now deleted during cleanup even when no source URL was set. The framework creates the source either way, and leaving it behind pinned the next run to the previous run's chart version.
-
-### Added
-
-- `WithDefaultAppName()` sets the name the cluster chart gives a default app's App CR / HelmRelease, for the few apps named after neither the app name nor the chart name.
-
-### Changed
-
-- Go: Update `clustertest` to v5.6.0 and delegate the Flux source and HelmRelease version handling to it. Sources are now created as `source.toolkit.fluxcd.io/v1`, which the client scheme registers, so the framework no longer registers it itself. This requires source-controller v1.6 (Flux 2.6) or newer. An `OCIRepository` without a chart version now resolves through the `*` semver range instead of the `latest` tag, which excludes pre-release versions.
 
 ## [5.2.6] - 2026-09-02
 
