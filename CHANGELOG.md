@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `WithDefaultAppName()` sets the name the cluster chart gives a default app's App CR / HelmRelease, for the few apps named after neither the app name nor the chart name.
+- `bundles.OverrideChild()` takes the child as a plain `ChildOverride` instead of an `App`, so the override can be built for either install mode. `OverrideChildApp()` stays as a wrapper.
 
 ### Changed
 
@@ -27,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - HelmRelease version assertions now check the deployed release instead of the attempted revision, so an upgrade that is only starting or that rolled back no longer passes.
 - Non-upgrade default app suites now wait for the app to be deployed at the version under test instead of skipping the install step and asserting nothing. A Release app override that silently did not take effect now fails the suite rather than having it test the Release's version.
 - The Flux source CR is now deleted during cleanup even when no source URL was set. The framework creates the source either way, and leaving it behind pinned the next run to the previous run's chart version.
+- Bundle child overrides no longer set the child's chart name to its app name. `WithHelmChartName()` now feeds the override, so a child whose chart is published under a different name is pulled correctly.
+- Bundle child overrides no longer emit empty values. A catalog or namespace the suite didn't set was overriding the bundle chart's own default with an empty string.
 
 ## [5.2.6] - 2026-09-02
 
