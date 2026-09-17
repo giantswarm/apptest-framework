@@ -595,16 +595,16 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 
 					if len(appNamespacedNames) > 0 {
 						Eventually(wait.IsAllAppDeployed(state.GetContext(), state.GetFramework().MC(), appNamespacedNames)).
-							WithTimeout(15 * time.Minute).
-							WithPolling(10 * time.Second).
-							Should(BeTrue())
+							WithTimeout(15*time.Minute).
+							WithPolling(10*time.Second).
+							Should(BeTrue(), client.FailureDiagnostics("not all default App CRs in '%s' were deployed", orgNamespace))
 					}
 
 					if len(hrNamespacedNames) > 0 {
 						Eventually(client.IsAllHelmReleasesReady(state.GetContext(), state.GetFramework().MC(), hrNamespacedNames)).
-							WithTimeout(15 * time.Minute).
-							WithPolling(10 * time.Second).
-							Should(BeTrue())
+							WithTimeout(15*time.Minute).
+							WithPolling(10*time.Second).
+							Should(BeTrue(), client.FailureDiagnostics("not all default HelmReleases in '%s' became ready", orgNamespace))
 					}
 				},
 			}
@@ -872,8 +872,8 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 						return client.IsHelmReleaseVersion(state.GetContext(), installName, cfg.Namespace, appVersion)
 					}).
 						WithContext(ctx).
-						WithPolling(5 * time.Second).
-						Should(BeTrue())
+						WithPolling(5*time.Second).
+						Should(BeTrue(), client.FailureDiagnostics("HelmRelease '%s/%s' was not deployed at version '%s'", cfg.Namespace, installName, appVersion))
 
 				case installModeApp:
 					app := getInstallApp()
@@ -1028,7 +1028,7 @@ func (s *suite) waitForDefaultApp(ctx context.Context) {
 	}).
 		WithContext(ctx).
 		WithPolling(10*time.Second).
-		Should(BeTrue(), "default app '%s' was not deployed at version '%s'", ref.AppName, version)
+		Should(BeTrue(), client.FailureDiagnostics("default app '%s' was not deployed at version '%s'", ref.AppName, version))
 }
 
 // isManagedAppAtVersion reports whether the resource somebody else owns for the app under test
