@@ -49,6 +49,11 @@ const (
 	// updates or deletes it. The version under test is driven through the Release CR
 	// and the suite only asserts on the result, so WithHelmRelease does not apply.
 	installModeDefaultApp
+	// installModeBundleHelmRelease: the framework installs the parent bundle chart as a
+	// HelmRelease the management cluster itself owns, and the bundle in turn installs the app
+	// under test as one of its children. The framework never writes to the child; it pins the
+	// child's version through the parent's values and asserts on the result.
+	installModeBundleHelmRelease
 )
 
 const (
@@ -63,9 +68,10 @@ const (
 
 // installMode returns the mode this suite runs in.
 //
-// Being a default app wins over WithHelmRelease: the cluster chart, not the suite,
-// decides whether a default app is rendered as an App CR or a HelmRelease, and
-// writing to that resource would fight the cluster chart's own reconciliation.
+// Being a default app wins over WithHelmRelease and over InAppBundle: the cluster chart, not
+// the suite, decides whether a default app is rendered as an App CR or a HelmRelease, and
+// writing to that resource would fight the cluster chart's own reconciliation. That holds for a
+// bundle the Release ships too, which is the cluster chart's to install.
 //
 // This must only be called from inside a spec or setup node. isDefaultApp is resolved
 // in BeforeSuite, so it is not yet known when the spec tree is built.
@@ -73,11 +79,26 @@ func (s *suite) installMode() installMode {
 	switch {
 	case s.isDefaultApp:
 		return installModeDefaultApp
+	case s.useHelmRelease && s.inBundleApp != "":
+		return installModeBundleHelmRelease
 	case s.useHelmRelease:
 		return installModeHelmRelease
 	default:
 		return installModeApp
 	}
+}
+
+// validate reports a suite configuration that cannot work, so that it fails with an
+// explanation before anything is created rather than as a confusing Flux or app-operator error
+// much later.
+func (s *suite) validate() error {
+	if s.isMCTest && s.inBundleApp != "" {
+		// Bundle charts hardcode `kubeConfig.secretRef.name: <clusterID>-kubeconfig` on their
+		// children, which does not exist when the management cluster is the target. Unsupported
+		// on both install paths.
+		return fmt.Errorf("InAppBundle ('%s') is not supported for an MC test suite: bundle charts install their children through a '<clusterID>-kubeconfig' secret, which does not exist when the management cluster is the target", s.inBundleApp)
+	}
+	return nil
 }
 
 type suite struct {
@@ -382,6 +403,8 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 	BeforeSuite(func() {
 		logger.LogWriter = GinkgoWriter
 
+		Expect(s.validate()).To(Succeed())
+
 		mcKubeconfig := os.Getenv("E2E_KUBECONFIG")
 		mcContext := os.Getenv("E2E_KUBECONFIG_CONTEXT")
 		appVersion := os.Getenv("E2E_APP_VERSION")
@@ -618,6 +641,11 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 				// Owned by the cluster chart, so it goes away with the cluster.
 				logger.Log("App is a default app - nothing to uninstall")
 
+			case installModeBundleHelmRelease:
+				ctx, cancel := context.WithTimeout(state.GetContext(), 15*time.Minute)
+				defer cancel()
+				s.uninstallBundleHelmRelease(ctx)
+
 			case installModeHelmRelease:
 				installName := s.getHelmReleaseName()
 				cfg := s.buildHelmReleaseConfig(installName, "")
@@ -645,6 +673,13 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 			switch s.installMode() {
 			case installModeDefaultApp:
 				Skip("App is a default app - installed by the cluster chart")
+
+			case installModeBundleHelmRelease:
+				logger.Log("Checking that bundle HelmRelease %s isn't already installed", s.bundleHelmReleaseName())
+
+				_, err := s.bundleParentHelmRelease(state.GetContext())
+				Expect(err).ToNot(BeNil())
+				Expect(errors.IsNotFound(err)).To(BeTrue())
 
 			case installModeHelmRelease:
 				installName := s.getHelmReleaseName()
@@ -686,6 +721,22 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 						// The cluster was created without the app override, so it already came
 						// up with the version the Release pins.
 						Skip("App is a default app - the previous version was installed with the cluster")
+
+					case installModeBundleHelmRelease:
+						latestVersion, err := application.GetLatestAppVersion(s.repoName)
+						Expect(err).NotTo(HaveOccurred())
+						latestVersion = strings.TrimPrefix(latestVersion, "v")
+
+						ctx, cancel := context.WithTimeout(state.GetContext(), s.getHelmInstallTimeout())
+						defer cancel()
+
+						// The bundle goes in at the version the Release pins and stays there;
+						// only the child moves in the upgrade step.
+						s.installBundleHelmRelease(ctx, latestVersion)
+
+						childCtx, childCancel := context.WithTimeout(state.GetContext(), bundleChildInstallTimeout)
+						defer childCancel()
+						s.waitForBundleChild(childCtx, latestVersion)
 
 					case installModeHelmRelease:
 						latestVersion, err := application.GetLatestAppVersion(s.repoName)
@@ -761,6 +812,28 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 					defer waitCancel()
 					s.waitForDefaultApp(waitCtx)
 
+				case installModeBundleHelmRelease:
+					appVersion := os.Getenv("E2E_APP_VERSION")
+					Expect(appVersion).NotTo(BeEmpty(), "E2E_APP_VERSION must be set for HelmRelease tests")
+					appVersion = strings.TrimPrefix(appVersion, "v")
+
+					ctx, cancel := context.WithTimeout(state.GetContext(), s.getHelmInstallTimeout())
+					defer cancel()
+
+					if s.isUpgrade {
+						s.updateBundleChildVersion(ctx, appVersion)
+					} else {
+						s.installBundleHelmRelease(ctx, appVersion)
+					}
+
+					s.waitForBundleParent(ctx)
+
+					// The child is installed by the bundle, not by the framework, so it gets
+					// its own budget rather than what is left of the parent's.
+					childCtx, childCancel := context.WithTimeout(state.GetContext(), bundleChildInstallTimeout)
+					defer childCancel()
+					s.waitForBundleChild(childCtx, appVersion)
+
 				case installModeHelmRelease:
 					appVersion := os.Getenv("E2E_APP_VERSION")
 					Expect(appVersion).NotTo(BeEmpty(), "E2E_APP_VERSION must be set for HelmRelease tests")
@@ -831,6 +904,18 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 					}
 
 					client.InstallApp(ctx, app)
+
+					if state.GetBundleApplication() != nil {
+						// InstallApp only waits for the bundle App itself, which just means
+						// `helm upgrade` succeeded. The children it rendered may still be
+						// reconciling, or failing outright.
+						builtApp, _, err := state.GetApplication().Build()
+						Expect(err).NotTo(HaveOccurred())
+
+						childCtx, childCancel := context.WithTimeout(state.GetContext(), bundleChildInstallTimeout)
+						defer childCancel()
+						s.waitForBundleChild(childCtx, strings.TrimPrefix(builtApp.Spec.Version, "v"))
+					}
 				}
 			})
 		})
@@ -843,13 +928,17 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 	RunSpecs(t, suiteName)
 }
 
-// defaultAppRef identifies the App CR or HelmRelease the cluster chart owns for the default
-// app under test.
-type defaultAppRef struct {
-	// AppName is the Giant Swarm app name, as it appears in the Release CR.
+// managedAppRef identifies the App CR or HelmRelease that something other than the suite owns
+// for the app under test: the cluster chart when the app is a default app, the parent bundle
+// chart when it is installed through a bundle.
+//
+// Both use the same naming convention, `<cluster>-<appName>` in the org namespace, so one ref
+// covers both cases.
+type managedAppRef struct {
+	// AppName is the Giant Swarm app name, as it appears in the Release CR or in the bundle's
+	// values.
 	AppName string
-	// Namespace is the cluster's organization namespace, where the cluster chart renders
-	// the resource.
+	// Namespace is the cluster's organization namespace, where the owner renders the resource.
 	Namespace string
 	// Names are the candidate resource names, most likely first.
 	Names []string
@@ -866,7 +955,7 @@ type defaultAppRef struct {
 // For an app installed through a bundle it is the bundle that is the default app, and the
 // chart name belongs to the child, so it is not a candidate: `<cluster>-<childApp>` would
 // match the bundle's own child resource and be compared against the bundle's version.
-func (s *suite) resolveDefaultAppRef() defaultAppRef {
+func (s *suite) resolveDefaultAppRef() managedAppRef {
 	cluster := state.GetCluster()
 	app := getInstallApp()
 
@@ -876,7 +965,7 @@ func (s *suite) resolveDefaultAppRef() defaultAppRef {
 		chartName = ""
 	}
 
-	return defaultAppRef{
+	return managedAppRef{
 		AppName:   app.AppName,
 		Namespace: cluster.GetNamespace(),
 		Names:     defaultAppResourceNames(cluster.Name, app.AppName, chartName, s.defaultAppName),
@@ -923,22 +1012,25 @@ func (s *suite) waitForDefaultApp(ctx context.Context) {
 	logger.Log("Waiting for default app '%s' to be deployed at version '%s' (looking for %v in namespace '%s')", ref.AppName, version, ref.Names, ref.Namespace)
 
 	Eventually(func() (bool, error) {
-		return isDefaultAppAtVersion(ctx, ref, version)
+		return isManagedAppAtVersion(ctx, ref, version)
 	}).
 		WithContext(ctx).
 		WithPolling(10*time.Second).
 		Should(BeTrue(), "default app '%s' was not deployed at version '%s'", ref.AppName, version)
 }
 
-// isDefaultAppAtVersion reports whether the resource the cluster chart owns for the app under
-// test is deployed at the given version.
+// isManagedAppAtVersion reports whether the resource somebody else owns for the app under test
+// is deployed at the given version.
 //
-// Which kind that resource is depends on the cluster chart generation, so both are looked for
-// and whichever exists is used. A HelmRelease wins: while a cluster chart migrates an app from
-// an App CR to a HelmRelease both exist for a while, and the HelmRelease is the one that
-// survives.
-func isDefaultAppAtVersion(ctx context.Context, ref defaultAppRef, version string) (bool, error) {
-	hr, err := findDefaultAppHelmRelease(ctx, ref)
+// Which kind that resource is depends on the generation of whatever renders it, so both are
+// looked for and whichever exists is used. A HelmRelease wins: while a cluster chart or a
+// bundle migrates an app from an App CR to a HelmRelease both exist for a while, and the
+// HelmRelease is the one that survives.
+//
+// The deployed version is checked before readiness, so a still-Ready resource left at the
+// pre-upgrade version cannot satisfy the wait.
+func isManagedAppAtVersion(ctx context.Context, ref managedAppRef, version string) (bool, error) {
+	hr, err := findManagedHelmRelease(ctx, ref)
 	if err != nil {
 		return false, err
 	}
@@ -950,7 +1042,7 @@ func isDefaultAppAtVersion(ctx context.Context, ref defaultAppRef, version strin
 		return client.IsHelmReleaseReady(ctx, hr.Name, hr.Namespace)
 	}
 
-	appCR, err := findDefaultAppCR(ctx, ref)
+	appCR, err := findManagedAppCR(ctx, ref)
 	if err != nil {
 		return false, err
 	}
@@ -970,10 +1062,10 @@ func isDefaultAppAtVersion(ctx context.Context, ref defaultAppRef, version strin
 	return false, nil
 }
 
-// findDefaultAppHelmRelease looks for the cluster chart's HelmRelease for the app under test,
-// by name first and then by the chart it pulls, so a cluster chart that names the resource
-// after neither the app nor the chart is still found. Returns nil when there is none (yet).
-func findDefaultAppHelmRelease(ctx context.Context, ref defaultAppRef) (*helmv2.HelmRelease, error) {
+// findManagedHelmRelease looks for the HelmRelease of the app under test, by name first and
+// then by the chart it pulls, so an owner that names the resource after neither the app nor the
+// chart is still found. Returns nil when there is none (yet).
+func findManagedHelmRelease(ctx context.Context, ref managedAppRef) (*helmv2.HelmRelease, error) {
 	mcClient := state.GetFramework().MC()
 
 	for _, name := range ref.Names {
@@ -1003,10 +1095,10 @@ func findDefaultAppHelmRelease(ctx context.Context, ref defaultAppRef) (*helmv2.
 	return nil, nil
 }
 
-// findDefaultAppCR looks for the cluster chart's App CR for the app under test, by name first
-// and then by spec.name, which is the app name however the CR itself is named. Returns nil
-// when there is none (yet).
-func findDefaultAppCR(ctx context.Context, ref defaultAppRef) (*v1alpha1.App, error) {
+// findManagedAppCR looks for the App CR of the app under test, by name first and then by
+// spec.name, which is the app name however the CR itself is named. Returns nil when there is
+// none (yet).
+func findManagedAppCR(ctx context.Context, ref managedAppRef) (*v1alpha1.App, error) {
 	mcClient := state.GetFramework().MC()
 
 	for _, name := range ref.Names {

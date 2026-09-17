@@ -163,7 +163,14 @@ The parent bundle's version is resolved in the following order:
 > [!TIP]
 > This only applies when you install a child App _through_ a bundle via `InAppBundle`. A bundle repository that tests **itself** (e.g. [security-bundle](https://github.com/giantswarm/security-bundle/tree/main/tests/e2e/suites/basic)) installs the bundle as the top-level App under test (driven by `E2E_APP_VERSION`) and does not call `InAppBundle`, so this resolution does not apply to it — its own PR build is tested as expected.
 
+The suite waits for the child the bundle rendered for your App — `{clusterName}-{appName}` in the org namespace — to be deployed at the version under test, so a child that is unhealthy or stuck at the wrong version fails the suite instead of the parent bundle's own `deployed` status carrying it.
+
+To install the bundle the way it ships on current clusters, as a Flux `HelmRelease` instead of an `App` CR, add `WithHelmRelease(true)` — see [Bundles in HelmRelease mode](#bundles-in-helmrelease-mode).
+
 If the bundle App is also a default app please make sure to also read the [Testing Default Apps](#testing-default-apps) section below.
+
+> [!WARNING]
+> `InAppBundle` is not supported for MC test suites (`isMCTest: true`). Bundle charts install their children through the workload cluster's kubeconfig secret, which does not exist when the management cluster itself is the target.
 
 > [!TIP]
 > Example: [tests/e2e/suites/defaultbundleapp](https://github.com/giantswarm/apptest-framework/blob/534f57426d183921e042e09cf6694ac2756d3862/tests/e2e/suites/defaultbundleapp/defaultbundleapp_suite_test.go)
@@ -282,6 +289,43 @@ suite.New().
 
 For `HelmRepository` sources the framework patches `spec.chart.spec.version` on the HelmRelease. For `OCIRepository` sources it patches `spec.ref.tag` on the OCIRepository.
 
+### Bundles in HelmRelease mode
+
+`WithHelmRelease(true)` can be combined with [`InAppBundle`](#testing-app-bundles). The framework then installs the **parent bundle** as a HelmRelease and lets the bundle install your App as one of its children, which is how a bundled App actually ships:
+
+```go
+suite.New().
+  WithHelmRelease(true).
+  InAppBundle("gateway-api-bundle").
+  WithInstallNamespace("envoy-gateway-system").
+  WithBundleValuesFile("./bundle_values.yaml").
+  ...etc...
+```
+
+What the framework creates:
+
+1. An `OCIRepository` named `{clusterName}-{bundleName}` in the cluster's org namespace, pinned to the bundle version resolved as described in [Bundle version resolution](#bundle-version-resolution).
+2. A `HelmRelease` of the same name, with `targetNamespace` and `storageNamespace` equal to its own namespace, `spec.serviceAccountName: automation` and **no** `kubeConfig`. The parent has to run in-cluster on the MC: it is the bundle chart that hands each child the workload cluster's kubeconfig.
+3. Its values, inline in `spec.values`, merged from three layers (lowest precedence first): your `bundle_values.yaml`, then `clusterID` and `organization`, then the version override for the App under test.
+
+The suite then waits for the parent to be ready and, more importantly, for the **child** the bundle rendered for your App — `{clusterName}-{appName}` in the org namespace — to be deployed at the version under test. The child is found whether the bundle renders it as an `App` CR or as a `HelmRelease`, so the same suite works across bundle generations. The App version is never asserted on the parent, whose version is the bundle chart's.
+
+On an upgrade suite the bundle stays at the version the Release pins for the whole run, and only the child's version moves, by rewriting the parent's values. That keeps the upgrade under test to the one thing the suite is about.
+
+Cleanup deletes the parent HelmRelease and waits for its uninstall, which removes the children with it, and then deletes the parent's `OCIRepository`.
+
+> [!IMPORTANT]
+> The `automation` service account must already exist in the org namespace, which it does on every Giant Swarm MC. The framework requires it rather than creating it: an auto-created service account holds no permissions and would fail much later with an opaque RBAC error. Use `WithHelmServiceAccountName()` to impersonate a different one.
+
+> [!NOTE]
+> In bundle mode the App's own `values.yaml` is not deployed, in **either** install mode — the framework only configures the App through the bundle's values. Use `bundle_values.yaml` (which is rendered as a Go template, so `{{ .ClusterName }}` works) to configure the bundle and its children.
+
+> [!NOTE]
+> `appCatalog` is irrelevant in HelmRelease mode. Dev, PR and release chart builds are all published to the same OCI path (`oci://gsoci.azurecr.io/charts/giantswarm/{chartName}`), so there is no `-test` catalog equivalent on the Flux path. Use `WithHelmChartName()` when the published chart name differs from `appName`, and `WithHelmSourceURL()` for a registry other than the default.
+
+> [!WARNING]
+> `InAppBundle` is not supported for MC test suites (`isMCTest: true`), in either install mode. Bundle charts reach their children through the `{clusterID}-kubeconfig` secret, which does not exist when the management cluster itself is the target. Such a suite fails immediately with an explanation rather than emitting a confusing Flux error.
+
 ### Client Helper Functions
 
 The `pkg/client` package provides helper functions for working with HelmRelease CRs directly in your tests:
@@ -300,7 +344,7 @@ The `pkg/client` package provides helper functions for working with HelmRelease 
 The HelmRelease is stored in the shared state and can be accessed within your tests:
 
 ```go
-import "github.com/giantswarm/apptest-framework/v3/pkg/state"
+import "github.com/giantswarm/apptest-framework/v5/pkg/state"
 
 hr := state.GetHelmRelease()
 ```
@@ -309,9 +353,6 @@ hr := state.GetHelmRelease()
 > Giant Swarm MCs enforce a `flux-multi-tenancy` Kyverno policy on HelmReleases outside the `flux-giantswarm`, `giantswarm` and `monitoring` namespaces:
 > 1. either `spec.serviceAccountName` or `spec.kubeConfig.secretRef.name` must be set — the kubeconfig secret the framework defaults to satisfies this
 > 2. `targetNamespace` and `storageNamespace` must match `metadata.namespace` unless `kubeConfig` is set — with the default kubeconfig secret in place, `WithHelmTargetNamespace()` can name any namespace in the cluster
-
-> [!NOTE]
-> HelmRelease mode cannot be combined with App Bundle mode (`InAppBundle`). If you need to test a chart within a bundle, use the standard App CR mode.
 
 ## Testing with AWS API Access
 
@@ -373,7 +414,7 @@ import (
     . "github.com/onsi/ginkgo/v2"
     . "github.com/onsi/gomega"
 
-    awshelper "github.com/giantswarm/apptest-framework/v3/pkg/aws"
+    awshelper "github.com/giantswarm/apptest-framework/v5/pkg/aws"
     "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
 )
 

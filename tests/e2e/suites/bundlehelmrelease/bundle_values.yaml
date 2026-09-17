@@ -1,0 +1,5 @@
+# Values for the parent bundle chart itself, merged below the cluster identity and the child
+# version override. Only the app under test is needed here.
+apps:
+  gatewayApiConfig:
+    enabled: false

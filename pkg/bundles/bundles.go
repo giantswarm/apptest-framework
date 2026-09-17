@@ -45,12 +45,35 @@ func OverrideChildApp(bundleApp *application.Application, childApp *application.
 // The overrideType specifies the naming convention for the child app.
 // If set to AppNameOverrideAuto, it will attempt to auto-detect based on the bundle app name.
 func OverrideChild(bundleApp *application.Application, child ChildOverride, overrideType AppNameOverrideType) (*application.Application, error) {
+	valuesLayer, err := ChildValues(bundleApp.AppName, child, overrideType)
+	if err != nil {
+		return nil, err
+	}
+	if valuesLayer == "" {
+		// No override values, return bundle app unchanged
+		return bundleApp, nil
+	}
+
+	finalValues, err := values.Merge(bundleApp.Values, valuesLayer)
+	if err != nil {
+		return nil, err
+	}
+
+	return bundleApp.WithValues(finalValues, &application.TemplateValues{})
+}
+
+// ChildValues returns the values layer that makes a bundle install the described child.
+//
+// The layer is returned rather than applied so that both install paths can share it: the App
+// CR path merges it into the bundle App's values, the Flux path into the parent HelmRelease's
+// values. bundleAppName is only used to pick the naming convention, and only when overrideType
+// is AppNameOverrideAuto. An empty layer is returned for AppNameOverrideNone.
+func ChildValues(bundleAppName string, child ChildOverride, overrideType AppNameOverrideType) (string, error) {
 	appName := child.AppName
 
 	switch overrideType {
 	case AppNameOverrideNone:
-		// No override values, return bundle app unchanged
-		return bundleApp, nil
+		return "", nil
 	case AppNameOverrideCamelCase:
 		appName = toCamelCase(appName)
 	case AppNameOverrideHyphen:
@@ -59,10 +82,10 @@ func OverrideChild(bundleApp *application.Application, child ChildOverride, over
 		fallthrough
 	default:
 		// Auto-detect based on bundle app name
-		if isCamelCaseName(bundleApp.AppName) {
+		if isCamelCaseName(bundleAppName) {
 			appName = toCamelCase(appName)
-		} else if !isHyphenName(bundleApp.AppName) {
-			return nil, fmt.Errorf("provided bundle is unsupported, child version override format is unknown")
+		} else if !isHyphenName(bundleAppName) {
+			return "", fmt.Errorf("provided bundle is unsupported, child version override format is unknown")
 		}
 	}
 
@@ -86,15 +109,10 @@ func OverrideChild(bundleApp *application.Application, child ChildOverride, over
 
 	valuesLayer, err := yaml.Marshal(overrideValues)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	finalValues, err := values.Merge(bundleApp.Values, string(valuesLayer))
-	if err != nil {
-		return nil, err
-	}
-
-	return bundleApp.WithValues(finalValues, &application.TemplateValues{})
+	return string(valuesLayer), nil
 }
 
 // toCamelCase converts a hyphenated app name to camelCase
