@@ -407,12 +407,13 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 
 		mcKubeconfig := os.Getenv("E2E_KUBECONFIG")
 		mcContext := os.Getenv("E2E_KUBECONFIG_CONTEXT")
-		appVersion := os.Getenv("E2E_APP_VERSION")
 
 		// Ensure all require env vars are set
 		Expect(mcKubeconfig).ToNot(BeEmpty(), "`E2E_KUBECONFIG` must be set to the kubeconfig of the test MC")
 		Expect(mcContext).ToNot(BeEmpty(), "`E2E_KUBECONFIG_CONTEXT` must be set to the context to use in the kubeconfig")
-		Expect(appVersion).ToNot(BeEmpty(), "`E2E_APP_VERSION` must be set to version of the app to test against")
+
+		appVersion := s.resolveAppVersion()
+		Expect(appVersion).ToNot(BeEmpty(), fmt.Sprintf("the version of '%s' to test could not be resolved: set `E2E_APP_VERSION`", s.appName))
 
 		state.SetContext(context.Background())
 
@@ -813,9 +814,7 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 					s.waitForDefaultApp(waitCtx)
 
 				case installModeBundleHelmRelease:
-					appVersion := os.Getenv("E2E_APP_VERSION")
-					Expect(appVersion).NotTo(BeEmpty(), "E2E_APP_VERSION must be set for HelmRelease tests")
-					appVersion = strings.TrimPrefix(appVersion, "v")
+					appVersion := appVersionUnderTest()
 
 					ctx, cancel := context.WithTimeout(state.GetContext(), s.getHelmInstallTimeout())
 					defer cancel()
@@ -835,8 +834,7 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 					s.waitForBundleChild(childCtx, appVersion)
 
 				case installModeHelmRelease:
-					appVersion := os.Getenv("E2E_APP_VERSION")
-					Expect(appVersion).NotTo(BeEmpty(), "E2E_APP_VERSION must be set for HelmRelease tests")
+					appVersion := appVersionUnderTest()
 					installName := s.getHelmReleaseName()
 
 					ctx, cancel := context.WithTimeout(state.GetContext(), s.getHelmInstallTimeout())
@@ -1131,6 +1129,31 @@ func getInstallApp() *application.Application {
 		return bundleApp
 	}
 	return state.GetApplication()
+}
+
+// resolveAppVersion returns the version of the app under test: `E2E_APP_VERSION`, which is the
+// version CI publishes for the commit under test, or the latest published release for a local
+// run without it.
+//
+// It is resolved once, up front, so that every install mode tests the same version. HelmRelease
+// mode read the environment variable at each step instead, keeping a leading `v` that no chart
+// is published under.
+func (s *suite) resolveAppVersion() string {
+	if v := os.Getenv("E2E_APP_VERSION"); v != "" && v != "latest" {
+		return strings.TrimPrefix(v, "v")
+	}
+
+	latest, err := application.GetLatestAppVersion(s.repoName)
+	Expect(err).ToNot(HaveOccurred())
+	logger.Log("`E2E_APP_VERSION` is not set for '%s'; falling back to the latest published version: %s", s.appName, latest)
+	return strings.TrimPrefix(latest, "v")
+}
+
+// appVersionUnderTest returns the resolved version of the app under test, as the chart is
+// published under it. It is read back from the Application rather than from the environment so
+// that every install mode tests the version the suite resolved once, up front.
+func appVersionUnderTest() string {
+	return strings.TrimPrefix(state.GetApplication().Version, "v")
 }
 
 // resolveBundleVersion determines the version and catalog of the bundle App to install.
