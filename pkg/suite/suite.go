@@ -453,7 +453,7 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 			WithClusterName(cluster.Name).
 			WithVersion(appVersion).
 			WithInstallNamespace(s.installNamespace).
-			MustWithValuesFile(s.valuesFile, &application.TemplateValues{}).
+			MustWithValuesFile(s.valuesFile, appTemplateValues(cluster)).
 			WithInCluster(s.inCluster)
 		state.SetApplication(app)
 
@@ -1246,18 +1246,54 @@ func (s *suite) getHelmInstallTimeout() time.Duration {
 	return 10 * time.Minute
 }
 
-// loadValues reads the values file and returns its content as a string.
-// Returns an empty string if the file does not exist.
+// appTemplateValues returns the variables a suite's values file is rendered with. The App CR
+// path and the HelmRelease path share them, so a values file behaves the same in either mode.
+func appTemplateValues(cluster *application.Cluster) *application.TemplateValues {
+	return &application.TemplateValues{
+		ClusterName:  cluster.Name,
+		Namespace:    cluster.GetNamespace(),
+		Organization: cluster.Organization.Name,
+	}
+}
+
+// loadValues renders the suite's values file and returns it as a YAML string.
+//
+// The file is a Go template on the App CR path, so it has to be one here too: reading it raw
+// leaves a suite that uses `{{ .ClusterName }}` with literal braces in the values it installs
+// with. clustertest's renderer is reused rather than duplicated, which also keeps the tolerant
+// behaviour of a missing or empty file meaning no values.
 func (s *suite) loadValues() string {
-	valuesPath := s.valuesFile
-	if valuesPath == "" {
+	GinkgoHelper()
+
+	if s.valuesFile == "" {
 		return ""
 	}
-	content, err := os.ReadFile(valuesPath) // #nosec G304
+
+	rendered, err := renderValuesFile(s.valuesFile, appTemplateValues(state.GetCluster()))
+	Expect(err).NotTo(HaveOccurred())
+
+	return rendered
+}
+
+// renderValuesFile renders the values file at path as a Go template with tv. A file that does
+// not exist, is empty, or renders to nothing but whitespace yields empty values.
+func renderValuesFile(path string, tv *application.TemplateValues) (string, error) {
+	if _, err := os.Stat(path); err != nil {
+		return "", nil
+	}
+
+	// The builder is only a vehicle for clustertest's renderer here; nothing else about the
+	// Application it returns is used.
+	app, err := application.New("values", "values").WithValuesFile(path, tv)
 	if err != nil {
-		return ""
+		return "", err
 	}
-	return string(content)
+
+	if strings.TrimSpace(app.Values) == "" {
+		return "", nil
+	}
+
+	return app.Values, nil
 }
 
 // buildHelmReleaseConfig constructs a HelmReleaseConfig from suite settings,

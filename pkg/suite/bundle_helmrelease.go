@@ -3,7 +3,6 @@ package suite
 import (
 	"context"
 	"fmt"
-	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2" //nolint:staticcheck
@@ -11,10 +10,8 @@ import (
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	"github.com/giantswarm/cluster-standup-teardown/v6/pkg/values"
-	"github.com/giantswarm/clustertest/v5/pkg/helmrelease"
 	"github.com/giantswarm/clustertest/v5/pkg/logger"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/yaml"
 
 	"github.com/giantswarm/apptest-framework/v5/pkg/bundles"
 	"github.com/giantswarm/apptest-framework/v5/pkg/client"
@@ -82,34 +79,19 @@ func bundleParentValues(bundleValues, identity, childLayer string) (string, erro
 	return values.Merge(bundleValues, identity, childLayer)
 }
 
-// loadBundleValues reads the bundle values file and renders it as a Go template, the way the
-// app's own values file is rendered on the App CR path. A missing file yields empty values.
+// loadBundleValues reads the bundle values file and renders it as a Go template, with the same
+// variables as the app's own values file. A missing file yields empty values.
 func (s *suite) loadBundleValues() string {
 	GinkgoHelper()
 
 	if s.bundleValuesFile == "" {
 		return ""
 	}
-	if _, err := os.Stat(s.bundleValuesFile); err != nil {
-		return ""
-	}
 
-	// Reuse clustertest's renderer rather than duplicating the templating. The builder is only
-	// a vehicle for it here; nothing else about it is used.
-	rendered, err := helmrelease.New("bundle-values", "bundle-values").
-		WithValuesFile(s.bundleValuesFile, &helmrelease.TemplateValues{
-			ClusterName: state.GetCluster().Name,
-		})
+	rendered, err := renderValuesFile(s.bundleValuesFile, appTemplateValues(state.GetCluster()))
 	Expect(err).NotTo(HaveOccurred())
 
-	if len(rendered.Values) == 0 {
-		return ""
-	}
-
-	out, err := yaml.Marshal(rendered.Values)
-	Expect(err).NotTo(HaveOccurred())
-
-	return string(out)
+	return rendered
 }
 
 // bundleParentValues builds the full values of the parent bundle with the app under test pinned
