@@ -203,6 +203,8 @@ The framework supports both source kinds used by Flux HelmReleases:
 
 For Giant Swarm apps on `gsoci.azurecr.io`, the framework defaults the source URL automatically — no `WithHelmSourceURL` needed in most cases.
 
+Sources are created as `source.toolkit.fluxcd.io/v1`, so the cluster needs source-controller v1.6 (Flux 2.6) or newer.
+
 ### Configuration
 
 The minimal setup for a standard GS app:
@@ -251,8 +253,8 @@ Use `WithHelmSourceURL` only if the chart lives outside `gsoci.azurecr.io/charts
 When HelmRelease mode is enabled, the framework will:
 
 1. Auto-configure the defaults a Giant Swarm cluster expects (namespace → cluster org namespace, kubeconfig secret → `{clusterName}-kubeconfig`, storage namespace → target namespace). This applies to MC tests too: an MC is a CAPI cluster like any other, self-managed in `org-giantswarm`, so its apps are installed through its own kubeconfig secret rather than in-cluster.
-2. Create the source CR (`HelmRepository` or `OCIRepository`), defaulting to the GS OCI registry.
-3. Ensure required namespaces exist, creating them if needed.
+2. Ensure required namespaces exist, creating them if needed.
+3. Create the source CR (`HelmRepository` or `OCIRepository`), defaulting to the GS OCI registry.
 4. Ensure the service account exists, creating it if needed.
 5. Create a `Secret` containing chart values if a values file is provided.
 6. Create the `HelmRelease` CR referencing the source.
