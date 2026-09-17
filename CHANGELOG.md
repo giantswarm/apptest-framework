@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `WithDefaultAppName()` sets the name the cluster chart gives a default app's App CR / HelmRelease, for the few apps named after neither the app name nor the chart name.
 
+### Changed
+
+- Go: Update `clustertest` to v5.6.0 and delegate the Flux source and HelmRelease version handling to it. Sources are now created as `source.toolkit.fluxcd.io/v1`, which the client scheme registers, so the framework no longer registers it itself. An `OCIRepository` without a chart version now tracks the latest version in the registry rather than the `latest` tag.
+
 ## [5.2.6] - 2026-09-02
 
 ### Changed
