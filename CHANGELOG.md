@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `WithClusterValues()` makes a HelmRelease read the cluster's `<cluster>-cluster-values` ConfigMap ahead of the suite's own values, which nothing injects under Flux the way app-operator does for App CRs. Off by default, as charts that reject unknown values cannot take it.
+- `HelmReleaseConfig.ValuesFrom` takes an ordered set of values sources, merged in App platform order: all ConfigMaps before all Secrets, each by ascending priority, with the suite's own values in the user config slot.
 - `WithDefaultAppName()` sets the name the cluster chart gives a default app's App CR / HelmRelease, for the few apps named after neither the app name nor the chart name.
 - `bundles.OverrideChild()` takes the child as a plain `ChildOverride` instead of an `App`, so the override can be built for either install mode. `OverrideChildApp()` stays as a wrapper.
 - `InAppBundle` can now be combined with `WithHelmRelease`. The parent bundle is installed as a HelmRelease the MC owns, impersonating the `automation` service account, and the child's version is pinned through the parent's values.

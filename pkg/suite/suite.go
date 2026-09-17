@@ -129,6 +129,7 @@ type suite struct {
 	helmSourceNamespace      string
 	helmSourceURL            string
 	helmChartName            string
+	useClusterValues         bool
 	helmTargetNamespace      string
 	helmStorageNamespace     string
 	helmReleaseName          string
@@ -275,6 +276,19 @@ func (s *suite) WithHelmSourceNamespace(namespace string) *suite {
 // Defaults to appName. Set this when the chart name in the registry differs from the app install name.
 func (s *suite) WithHelmChartName(name string) *suite {
 	s.helmChartName = name
+	return s
+}
+
+// WithClusterValues makes the HelmRelease read the cluster's `<cluster>-cluster-values`
+// ConfigMap ahead of the suite's own values, the way app-operator injects it into every App CR
+// it reconciles. Nothing does that under Flux, so a chart that reads `.Values.global` or
+// `.Values.baseDomain` needs it.
+//
+// It is off by default: the ConfigMap carries the full cluster values, which a chart with
+// `additionalProperties: false` rejects outright. The suite's own values still win, and the
+// ConfigMap is referenced as optional, so a cluster that has none is not an error.
+func (s *suite) WithClusterValues(useClusterValues bool) *suite {
+	s.useClusterValues = useClusterValues
 	return s
 }
 
@@ -1382,5 +1396,29 @@ func (s *suite) buildHelmReleaseConfig(installName, chartVersion string) client.
 		ServiceAccountName:   serviceAccountName,
 		KubeConfigSecretName: kubeConfigSecret,
 		Values:               s.loadValues(),
+		ValuesFrom:           s.helmValuesFrom(),
+	}
+}
+
+// helmValuesFrom returns the values sources merged ahead of the suite's own values.
+func (s *suite) helmValuesFrom() []client.ValuesSource {
+	if !s.useClusterValues {
+		return nil
+	}
+
+	name := fmt.Sprintf("%s-cluster-values", cleanClusterName(state.GetCluster().Name))
+	logger.Log("Merging cluster values ConfigMap '%s' ahead of the suite's own values", name)
+
+	return []client.ValuesSource{
+		{
+			Kind: "ConfigMap",
+			Name: name,
+			// The cluster chart writes the cluster values under `values`, not under Flux's
+			// default `values.yaml`.
+			ValuesKey: "values",
+			// A cluster that has no cluster values is not an error.
+			Optional: true,
+			Priority: client.ValuesPriorityDefault,
+		},
 	}
 }
