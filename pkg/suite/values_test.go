@@ -83,3 +83,33 @@ func TestRenderValuesFileInvalidTemplate(t *testing.T) {
 		t.Error("expected an error for a template referencing an unknown variable, got none")
 	}
 }
+
+// TestRenderValuesFileMalformedTemplate covers a values file carrying chart-side templating:
+// clustertest parses with `template.Must`, so this has to be caught before it panics the suite.
+func TestRenderValuesFileMalformedTemplate(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "values.yaml")
+	if err := os.WriteFile(path, []byte("config: |\n  {{ toYaml .Values.foo }}\n"), 0o600); err != nil {
+		t.Fatalf("writing values file: %s", err)
+	}
+
+	if _, err := renderValuesFile(path, &application.TemplateValues{}); err == nil {
+		t.Error("expected an error for a values file that is not a valid Go template, got none")
+	}
+}
+
+// TestRenderValuesFileUnreadable covers a values file that exists but cannot be read. Treating
+// it as absent would install the chart's defaults and pass, testing the wrong configuration.
+func TestRenderValuesFileUnreadable(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root reads a 0000 file regardless of its mode")
+	}
+
+	path := filepath.Join(t.TempDir(), "values.yaml")
+	if err := os.WriteFile(path, []byte("replicas: 2\n"), 0o000); err != nil {
+		t.Fatalf("writing values file: %s", err)
+	}
+
+	if _, err := renderValuesFile(path, &application.TemplateValues{}); err == nil {
+		t.Error("expected an error for an unreadable values file, got none")
+	}
+}

@@ -3,8 +3,10 @@ package suite
 import (
 	"context"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -427,7 +429,6 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 		Expect(mcContext).ToNot(BeEmpty(), "`E2E_KUBECONFIG_CONTEXT` must be set to the context to use in the kubeconfig")
 
 		appVersion := s.resolveAppVersion()
-		Expect(appVersion).ToNot(BeEmpty(), fmt.Sprintf("the version of '%s' to test could not be resolved: set `E2E_APP_VERSION`", s.appName))
 
 		state.SetContext(context.Background())
 
@@ -779,7 +780,12 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 								MustWithValues(fmt.Sprintf("clusterID: %s", cluster.Name), &application.TemplateValues{}).
 								WithInCluster(true)
 						} else {
-							app = state.GetApplication().WithVersion("latest")
+							// The app under test may be a dev build, for which clustertest points the
+							// Application at the `-test` catalog. The previous version is a published
+							// release, so the pre-install has to go back to the suite's own catalog.
+							app = cloneApplication(state.GetApplication()).
+								WithCatalog(s.appCatalog).
+								WithVersion("latest")
 						}
 
 						ctx, cancel := context.WithTimeout(state.GetContext(), 5*time.Minute)
@@ -873,7 +879,7 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 					}).
 						WithContext(ctx).
 						WithPolling(5*time.Second).
-						Should(BeTrue(), client.FailureDiagnostics("HelmRelease '%s/%s' was not deployed at version '%s'", cfg.Namespace, installName, appVersion))
+						Should(BeTrue(), client.FailureDiagnosticsIn(cfg.Namespace, "HelmRelease '%s/%s' was not deployed at version '%s'", cfg.Namespace, installName, appVersion))
 
 				case installModeApp:
 					app := getInstallApp()
@@ -882,10 +888,10 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 					defer cancel()
 
 					if state.GetBundleApplication() != nil {
-						if _, err := os.Stat(s.bundleValuesFile); err == nil {
-							bundleValuesContent, err := os.ReadFile(s.bundleValuesFile)
-							Expect(err).NotTo(HaveOccurred())
-
+						// The bundle values file is a Go template on the HelmRelease path, so it
+						// has to be one here too: reading it raw leaves a file that uses
+						// `{{ .ClusterName }}` with literal braces in the values it installs with.
+						if bundleValuesContent := s.loadBundleValues(); bundleValuesContent != "" {
 							configMapName := fmt.Sprintf("%s-bundle-values", app.InstallName)
 							configMap := &corev1.ConfigMap{
 								TypeMeta: v1.TypeMeta{
@@ -897,10 +903,10 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 									Namespace: app.GetNamespace(),
 								},
 								Data: map[string]string{
-									"values": string(bundleValuesContent),
+									"values": bundleValuesContent,
 								},
 							}
-							err = state.GetFramework().MC().CreateOrUpdate(ctx, configMap)
+							err := state.GetFramework().MC().CreateOrUpdate(ctx, configMap)
 							Expect(err).NotTo(HaveOccurred())
 							s.bundleValuesConfigMap = configMapName
 
@@ -1145,6 +1151,37 @@ func getInstallApp() *application.Application {
 	return state.GetApplication()
 }
 
+// appVersionFromEnv returns the version `E2E_APP_VERSION` names, and whether it names one.
+// `latest` does not: it asks for the latest published release, which only the caller can
+// resolve. The value is trimmed before it is compared, so that a variable holding nothing but
+// the `v` prefix falls back too rather than resolving to an empty version.
+func appVersionFromEnv() (string, bool) {
+	version := strings.TrimPrefix(os.Getenv("E2E_APP_VERSION"), "v")
+	if version == "" || version == "latest" {
+		return "", false
+	}
+	return version, true
+}
+
+// cloneApplication returns a copy of app that can be reconfigured without touching the original.
+//
+// The builder methods have pointer receivers and mutate in place, and `Build()` writes a
+// resolved version back onto the Application it is given. Installing something other than the
+// app under test (the previous version of an upgrade suite, for example) therefore has to run
+// off a copy, or every later step inherits it.
+func cloneApplication(app *application.Application) *application.Application {
+	if app == nil {
+		return nil
+	}
+
+	clone := *app
+	clone.ExtraConfigs = slices.Clone(app.ExtraConfigs)
+	clone.AppLabels = maps.Clone(app.AppLabels)
+	clone.ConfigMapLabels = maps.Clone(app.ConfigMapLabels)
+
+	return &clone
+}
+
 // resolveAppVersion returns the version of the app under test: `E2E_APP_VERSION`, which is the
 // version CI publishes for the commit under test, or the latest published release for a local
 // run without it.
@@ -1153,13 +1190,14 @@ func getInstallApp() *application.Application {
 // mode read the environment variable at each step instead, keeping a leading `v` that no chart
 // is published under.
 func (s *suite) resolveAppVersion() string {
-	if v := os.Getenv("E2E_APP_VERSION"); v != "" && v != "latest" {
-		return strings.TrimPrefix(v, "v")
+	if v, ok := appVersionFromEnv(); ok {
+		return v
 	}
 
 	latest, err := application.GetLatestAppVersion(s.repoName)
 	Expect(err).ToNot(HaveOccurred())
-	logger.Log("`E2E_APP_VERSION` is not set for '%s'; falling back to the latest published version: %s", s.appName, latest)
+	Expect(latest).ToNot(BeEmpty(), fmt.Sprintf("no published release of '%s' was found to fall back to: set `E2E_APP_VERSION`", s.appName))
+	logger.Log("Testing the latest published version of '%s': %s", s.appName, latest)
 	return strings.TrimPrefix(latest, "v")
 }
 
@@ -1314,10 +1352,27 @@ func (s *suite) loadValues() string {
 
 // renderValuesFile renders the values file at path as a Go template with tv. A file that does
 // not exist, is empty, or renders to nothing but whitespace yields empty values.
-func renderValuesFile(path string, tv *application.TemplateValues) (string, error) {
-	if _, err := os.Stat(path); err != nil {
-		return "", nil
+func renderValuesFile(path string, tv *application.TemplateValues) (rendered string, err error) {
+	if _, statErr := os.Stat(path); statErr != nil {
+		if os.IsNotExist(statErr) {
+			return "", nil
+		}
+		// Anything else (an unreadable file, a broken symlink, a path resolved against an
+		// unexpected working directory) would otherwise install the chart's own defaults and
+		// pass, testing a configuration nobody asked for.
+		return "", fmt.Errorf("values file '%s' cannot be read: %w", path, statErr)
 	}
+
+	// clustertest parses the file with `template.Must`, which panics on a malformed template
+	// rather than returning an error. Turn it back into one: a values file is the suite
+	// author's input, and a chart-side `{{ toYaml ... }}` deserves a readable failure. Catching
+	// it here rather than pre-parsing keeps a single renderer, so a file this accepts is a file
+	// clustertest can render.
+	defer func() {
+		if r := recover(); r != nil {
+			rendered, err = "", fmt.Errorf("values file '%s' is not a valid Go template: %v", path, r)
+		}
+	}()
 
 	// The builder is only a vehicle for clustertest's renderer here; nothing else about the
 	// Application it returns is used.
@@ -1396,18 +1451,30 @@ func (s *suite) buildHelmReleaseConfig(installName, chartVersion string) client.
 		ServiceAccountName:   serviceAccountName,
 		KubeConfigSecretName: kubeConfigSecret,
 		Values:               s.loadValues(),
-		ValuesFrom:           s.helmValuesFrom(),
+		ValuesFrom:           s.helmValuesFrom(namespace),
 	}
 }
 
-// helmValuesFrom returns the values sources merged ahead of the suite's own values.
-func (s *suite) helmValuesFrom() []client.ValuesSource {
+// helmValuesFrom returns the values sources merged ahead of the suite's own values, for a
+// HelmRelease living in namespace.
+//
+// Flux resolves a `valuesFrom` reference only within the HelmRelease's own namespace, and the
+// cluster values live in the cluster's org namespace. A HelmRelease installed anywhere else
+// cannot read them, and the reference being optional would turn that into a green run against
+// the chart's defaults, so it fails here instead.
+func (s *suite) helmValuesFrom(namespace string) []client.ValuesSource {
+	GinkgoHelper()
+
 	if !s.useClusterValues {
 		return nil
 	}
 
-	name := fmt.Sprintf("%s-cluster-values", cleanClusterName(state.GetCluster().Name))
-	logger.Log("Merging cluster values ConfigMap '%s' ahead of the suite's own values", name)
+	cluster := state.GetCluster()
+	orgNamespace := cluster.Organization.GetNamespace()
+	Expect(namespace).To(Equal(orgNamespace), fmt.Sprintf("`WithClusterValues` needs the HelmRelease in the cluster's org namespace '%s', where the cluster values live, but it is installed in '%s'", orgNamespace, namespace))
+
+	name := fmt.Sprintf("%s-cluster-values", cleanClusterName(cluster.Name))
+	logger.Log("Merging cluster values ConfigMap '%s/%s' ahead of the suite's own values", namespace, name)
 
 	return []client.ValuesSource{
 		{

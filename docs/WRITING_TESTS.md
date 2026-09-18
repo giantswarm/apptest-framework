@@ -286,6 +286,8 @@ suite.New().
 
 It is off by default because the ConfigMap carries the full cluster values, and a chart with `additionalProperties: false` at its schema root rejects them outright.
 
+It applies to a bundle installed as a HelmRelease too. Flux resolves a `valuesFrom` reference only within the HelmRelease's own namespace, and the cluster values live in the cluster's org namespace, so the suite is rejected if it also sets an install namespace of its own.
+
 When several values sources are in play they are merged the way the App platform merges config: all ConfigMaps before all Secrets, each by ascending priority, with your own values file last so it always wins.
 
 ### Upgrade Tests with HelmRelease
