@@ -213,7 +213,7 @@ func (s *suite) waitForBundleParent(ctx context.Context) {
 	}).
 		WithContext(ctx).
 		WithPolling(5*time.Second).
-		Should(BeTrue(), "bundle HelmRelease '%s/%s' did not become ready", namespace, name)
+		Should(BeTrue(), client.FailureDiagnostics("bundle HelmRelease '%s/%s' did not become ready", namespace, name))
 }
 
 // waitForBundleChild waits until the resource the bundle renders for the app under test is
@@ -231,7 +231,7 @@ func (s *suite) waitForBundleChild(ctx context.Context, version string) {
 	}).
 		WithContext(ctx).
 		WithPolling(10*time.Second).
-		Should(BeTrue(), "bundle child '%s' was not deployed at version '%s'", ref.AppName, version)
+		Should(BeTrue(), client.FailureDiagnostics("bundle child '%s' was not deployed at version '%s'", ref.AppName, version))
 }
 
 // uninstallBundleHelmRelease removes the parent bundle and everything it installed.
