@@ -1,8 +1,10 @@
 package client
 
 import (
+	"cmp"
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
@@ -67,8 +69,12 @@ type HelmReleaseConfig struct {
 	// If empty, the Giant Swarm registry is used. The framework creates the source CR
 	// before installing the HelmRelease either way.
 	SourceURL string
-	// Values is the raw values YAML to pass to the chart.
+	// Values is the raw values YAML to pass to the chart. It is written to a Secret the
+	// HelmRelease references in the user config slot, unless InlineValues is set.
 	Values string
+	// ValuesFrom are additional values sources merged ahead of Values, in App platform order
+	// rather than in the order they are given. See ValuesSource.
+	ValuesFrom []ValuesSource
 	// Interval is the reconciliation interval. Defaults to 5m.
 	Interval time.Duration
 	// Timeout is the time to wait for Helm operations. Defaults to 5m.
@@ -237,6 +243,79 @@ func DeleteHelmSource(ctx context.Context, cfg HelmReleaseConfig) error {
 	return helmrelease.DeleteSource(ctx, state.GetFramework().MC(), cfg.source())
 }
 
+// Values priorities, mirroring the slots app-operator gives an App CR's config layers. They
+// only order the sources relative to each other; the numbers themselves are never sent to the
+// cluster.
+const (
+	// ValuesPriorityDefault is the slot an ordinary config layer lands in, the same default
+	// app-operator gives an App CR's extraConfigs.
+	ValuesPriorityDefault = 25
+	// ValuesPriorityUserConfig is the slot the suite's own values file lands in. It is the
+	// highest of the standard slots, so a suite's values win over everything merged for it.
+	ValuesPriorityUserConfig = 100
+)
+
+// ValuesSource is one entry of a HelmRelease's spec.valuesFrom.
+//
+// Flux merges valuesFrom entries in the order they appear, so the order is what decides which
+// layer wins. It is expressed as a priority here instead, because a caller knows which slot a
+// layer belongs in but not what else is being merged alongside it.
+type ValuesSource struct {
+	// Kind is "ConfigMap" or "Secret".
+	Kind string
+	// Name of the ConfigMap or Secret, which has to live in the HelmRelease's namespace.
+	Name string
+	// ValuesKey is the data key the values are read from. Defaults to Flux's own default,
+	// `values.yaml`. App platform config maps use `values`.
+	ValuesKey string
+	// Optional tolerates the source not existing. Any other error still fails the release.
+	Optional bool
+	// Priority orders this source against the others: higher wins. Defaults to
+	// ValuesPriorityDefault.
+	Priority int
+}
+
+// sortedValuesFrom returns the values sources in the order Flux has to merge them to reproduce
+// the App platform's precedence: all ConfigMaps before all Secrets, each group by ascending
+// priority, ties in the order they were given. It mirrors the `sortedValuesFrom` helper the
+// cluster and bundle charts render their own HelmReleases with.
+func sortedValuesFrom(sources []ValuesSource) []helmv2.ValuesReference {
+	if len(sources) == 0 {
+		return nil
+	}
+
+	ordered := slices.Clone(sources)
+	slices.SortStableFunc(ordered, func(a, b ValuesSource) int {
+		if a.Kind != b.Kind {
+			// A Secret is the more specific layer of the two, so it is merged last.
+			if a.Kind == "ConfigMap" {
+				return -1
+			}
+			return 1
+		}
+		return cmp.Compare(priorityOf(a), priorityOf(b))
+	})
+
+	refs := make([]helmv2.ValuesReference, 0, len(ordered))
+	for _, source := range ordered {
+		refs = append(refs, helmv2.ValuesReference{
+			Kind:      source.Kind,
+			Name:      source.Name,
+			ValuesKey: source.ValuesKey,
+			Optional:  source.Optional,
+		})
+	}
+
+	return refs
+}
+
+func priorityOf(source ValuesSource) int {
+	if source.Priority == 0 {
+		return ValuesPriorityDefault
+	}
+	return source.Priority
+}
+
 func buildHelmRelease(cfg HelmReleaseConfig) *helmv2.HelmRelease {
 	source := cfg.source()
 
@@ -313,18 +392,23 @@ func buildHelmRelease(cfg HelmReleaseConfig) *helmv2.HelmRelease {
 		hr.Spec.ServiceAccountName = cfg.ServiceAccountName
 	}
 
+	valuesFrom := slices.Clone(cfg.ValuesFrom)
 	if cfg.Values != "" {
 		if cfg.InlineValues {
 			raw, err := yaml.YAMLToJSON([]byte(cfg.Values))
 			Expect(err).NotTo(HaveOccurred())
 			hr.Spec.Values = &apiextensionsv1.JSON{Raw: raw}
 		} else {
-			hr.Spec.ValuesFrom = append(hr.Spec.ValuesFrom, helmv2.ValuesReference{
-				Kind: "Secret",
-				Name: fmt.Sprintf("%s-values", cfg.Name),
+			// The suite's own values take the user config slot, so that anything merged for
+			// it (the cluster values, for example) can be overridden by the suite.
+			valuesFrom = append(valuesFrom, ValuesSource{
+				Kind:     "Secret",
+				Name:     fmt.Sprintf("%s-values", cfg.Name),
+				Priority: ValuesPriorityUserConfig,
 			})
 		}
 	}
+	hr.Spec.ValuesFrom = sortedValuesFrom(valuesFrom)
 
 	if cfg.KubeConfigSecretName != "" {
 		hr.Spec.KubeConfig = &meta.KubeConfigReference{
