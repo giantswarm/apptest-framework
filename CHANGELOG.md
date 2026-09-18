@@ -26,6 +26,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- A values file that is not a valid Go template now fails the suite with the file named, instead of panicking. A values file that exists but cannot be read is no longer treated as absent, which installed the chart's defaults and passed.
+- The bundle values file is now rendered as a template on the App CR path too, as it already was under Flux.
+- The pre-install of an upgrade suite no longer rewrites the app under test. It ran off the shared application, so the install step that followed reinstalled the previous version instead of the version being tested.
+- `WithClusterValues` now works for a bundle installed as a HelmRelease, where it was silently ignored, and is rejected when the HelmRelease is installed outside the cluster's org namespace, where Flux cannot read the ConfigMap.
+- A wait that times out on a HelmRelease outside the cluster's org namespace now dumps that namespace rather than describing unrelated resources.
 - Default apps are no longer installed by the framework when `WithHelmRelease` is set, which overwrote the HelmRelease owned by the cluster chart.
 - Upgrade suites for default apps now wait for the app to be reconciled at the version under test before running the tests.
 - `mcAppTest` e2e suite: install the `hello-world` test app via an `OCIRepository` + Flux `HelmRelease` instead of an `App` CR, matching the `basic` suite. The App CR path injects the cluster-values, which `hello-world` v3.x rejects.
