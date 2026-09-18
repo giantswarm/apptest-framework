@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bundle child overrides no longer set the child's chart name to its app name. `WithHelmChartName()` now feeds the override, so a child whose chart is published under a different name is pulled correctly.
 - Bundle child overrides no longer emit empty values. A catalog or namespace the suite didn't set was overriding the bundle chart's own default with an empty string.
 - Bundle suites now wait for the bundle's child to be deployed at the version under test. Previously an App CR bundle suite passed as soon as the parent bundle reached `deployed`, which only means `helm upgrade` succeeded.
+- The values file is now rendered as a Go template in HelmRelease mode, as it already was on the App CR path, so a suite using `{{ .ClusterName }}` no longer installs with literal braces. Both paths now substitute the cluster name, namespace and organization.
 
 ## [5.2.6] - 2026-09-02
 
