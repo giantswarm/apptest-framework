@@ -13,3 +13,14 @@ func TestFailureDiagnosticsMessage(t *testing.T) {
 		t.Errorf("message = %q, expected %q", message, expected)
 	}
 }
+
+// TestFailureDiagnosticsInMessage covers the namespace-scoped variant: the namespace only
+// decides what is gathered, so the message is the caller's either way.
+func TestFailureDiagnosticsInMessage(t *testing.T) {
+	message := FailureDiagnosticsIn("kube-system", "HelmRelease '%s/%s' did not become ready", "kube-system", "test-app")()
+
+	expected := "HelmRelease 'kube-system/test-app' did not become ready"
+	if message != expected {
+		t.Errorf("message = %q, expected %q", message, expected)
+	}
+}
