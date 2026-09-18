@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `WithClusterValues()` makes a HelmRelease read the cluster's `<cluster>-cluster-values` ConfigMap ahead of the suite's own values, which nothing injects under Flux the way app-operator does for App CRs. Off by default, as charts that reject unknown values cannot take it.
+- `defaultapphelmrelease` e2e suite: covers a default app suite that also sets `WithHelmRelease(true)`, which has to leave the cluster chart's HelmRelease untouched.
 - A wait that times out now dumps the conditions and events of every HelmRelease and App CR that is not ready, along with the non-running pods, instead of only reporting that something never became ready.
 - `HelmReleaseConfig.ValuesFrom` takes an ordered set of values sources, merged in App platform order: all ConfigMaps before all Secrets, each by ascending priority, with the suite's own values in the user config slot.
 - `WithDefaultAppName()` sets the name the cluster chart gives a default app's App CR / HelmRelease, for the few apps named after neither the app name nor the chart name.
@@ -38,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bundle child overrides no longer emit empty values. A catalog or namespace the suite didn't set was overriding the bundle chart's own default with an empty string.
 - Bundle suites now wait for the bundle's child to be deployed at the version under test. Previously an App CR bundle suite passed as soon as the parent bundle reached `deployed`, which only means `helm upgrade` succeeded.
 - The values file is now rendered as a Go template in HelmRelease mode, as it already was on the App CR path, so a suite using `{{ .ClusterName }}` no longer installs with literal braces. Both paths now substitute the cluster name, namespace and organization.
+- The `pkg/aws` docs referenced a `/v3` import path; the module is `/v5`.
 - The version of the app under test is now resolved once, up front, and read back off the Application in every install mode. HelmRelease mode read `E2E_APP_VERSION` at each step instead, keeping a leading `v` that no chart is published under.
 
 ## [5.2.6] - 2026-09-02

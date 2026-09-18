@@ -26,7 +26,7 @@
 //
 //	import (
 //	    "context"
-//	    awshelper "github.com/giantswarm/apptest-framework/v3/pkg/aws"
+//	    awshelper "github.com/giantswarm/apptest-framework/v5/pkg/aws"
 //	    "github.com/aws/aws-sdk-go-v2/service/ec2"
 //	)
 //
