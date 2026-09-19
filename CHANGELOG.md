@@ -21,13 +21,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The bundle values file is now rendered as a Go template on the App CR path too, as it already was under Flux. A file that has to reach the chart with literal `{{ }}` in it now needs them escaped.
 - Go: Update `clustertest` to v5.6.0 and delegate the Flux source and HelmRelease version handling to it. Sources are now created as `source.toolkit.fluxcd.io/v1`, which the client scheme registers, so the framework no longer registers it itself. This requires source-controller v1.6 (Flux 2.6) or newer. An `OCIRepository` without a chart version now resolves through the `*` semver range instead of the `latest` tag, which excludes pre-release versions.
 - Go: Update dependencies.
 
 ### Fixed
 
 - A values file that is not a valid Go template now fails the suite with the file named, instead of panicking. A values file that exists but cannot be read is no longer treated as absent, which installed the chart's defaults and passed.
-- The bundle values file is now rendered as a template on the App CR path too, as it already was under Flux.
 - The pre-install of an upgrade suite no longer rewrites the app under test. It ran off the shared application, so the install step that followed reinstalled the previous version instead of the version being tested.
 - `WithClusterValues` now works for a bundle installed as a HelmRelease, where it was silently ignored, and is rejected when the HelmRelease is installed outside the cluster's org namespace, where Flux cannot read the ConfigMap.
 - A wait that times out on a HelmRelease outside the cluster's org namespace now dumps that namespace rather than describing unrelated resources.

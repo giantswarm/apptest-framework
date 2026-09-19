@@ -272,7 +272,7 @@ When HelmRelease mode is enabled, the framework will:
 
 ### Values
 
-Your `values.yaml` is rendered as a Go template before it is installed, in both install modes. `{{ .ClusterName }}`, `{{ .Namespace }}` (the cluster's org namespace) and `{{ .Organization }}` are substituted; a missing or empty file means no values.
+Your `values.yaml` is rendered as a Go template before it is installed, in both install modes. `{{ .ClusterName }}`, `{{ .Namespace }}` (the cluster's org namespace) and `{{ .Organization }}` are substituted; a missing or empty file means no values. The same goes for the bundle values file of `WithBundleValuesFile`, so a file that has to reach the chart with literal `{{ }}` in it needs them escaped.
 
 In HelmRelease mode the rendered values are written to a `{helmReleaseName}-values` Secret that the HelmRelease references. Nothing else is merged into them by default, which is the one real difference from the `App` CR path: app-operator injects the cluster's `{clusterName}-cluster-values` ConfigMap into every App CR it reconciles, and no such thing happens under Flux. If your chart reads values that come from there (`.Values.global`, `.Values.baseDomain` and friends), opt in:
 
@@ -286,7 +286,7 @@ suite.New().
 
 It is off by default because the ConfigMap carries the full cluster values, and a chart with `additionalProperties: false` at its schema root rejects them outright.
 
-It applies to a bundle installed as a HelmRelease too. Flux resolves a `valuesFrom` reference only within the HelmRelease's own namespace, and the cluster values live in the cluster's org namespace, so the suite is rejected if it also sets an install namespace of its own.
+It applies to a bundle installed as a HelmRelease too, where the ConfigMap is merged into the **parent bundle chart's** values, not into the app under test. The app only sees them if the bundle forwards them to its children. Flux resolves a `valuesFrom` reference only within the HelmRelease's own namespace, and the cluster values live in the cluster's org namespace, so the suite is rejected if it also sets an install namespace of its own.
 
 When several values sources are in play they are merged the way the App platform merges config: all ConfigMaps before all Secrets, each by ascending priority, with your own values file last so it always wins.
 
