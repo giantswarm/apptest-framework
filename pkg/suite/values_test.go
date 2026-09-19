@@ -3,6 +3,7 @@ package suite
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/giantswarm/clustertest/v5/pkg/application"
@@ -81,5 +82,54 @@ func TestRenderValuesFileInvalidTemplate(t *testing.T) {
 
 	if _, err := renderValuesFile(path, &application.TemplateValues{}); err == nil {
 		t.Error("expected an error for a template referencing an unknown variable, got none")
+	}
+}
+
+// TestRenderValuesFileMalformedTemplate covers a values file carrying chart-side templating:
+// clustertest parses with `template.Must`, so this has to be caught before it panics the suite.
+func TestRenderValuesFileMalformedTemplate(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "values.yaml")
+	if err := os.WriteFile(path, []byte("config: |\n  {{ toYaml .Values.foo }}\n"), 0o600); err != nil {
+		t.Fatalf("writing values file: %s", err)
+	}
+
+	if _, err := renderValuesFile(path, &application.TemplateValues{}); err == nil {
+		t.Error("expected an error for a values file that is not a valid Go template, got none")
+	}
+}
+
+// TestRenderValuesFileUnreadable covers a values file that exists but cannot be read. It stats
+// fine, so it fails where clustertest reads it. Treating it as absent would install the chart's
+// defaults and pass, testing the wrong configuration.
+func TestRenderValuesFileUnreadable(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root reads a 0000 file regardless of its mode")
+	}
+
+	path := filepath.Join(t.TempDir(), "values.yaml")
+	if err := os.WriteFile(path, []byte("replicas: 2\n"), 0o000); err != nil {
+		t.Fatalf("writing values file: %s", err)
+	}
+
+	if _, err := renderValuesFile(path, &application.TemplateValues{}); err == nil {
+		t.Error("expected an error for an unreadable values file, got none")
+	}
+}
+
+// TestRenderValuesFileStatFails covers a path that stat itself rejects for a reason other than
+// the file being absent, which is the case the stat branch of renderValuesFile exists for.
+func TestRenderValuesFileStatFails(t *testing.T) {
+	// A path that runs through a regular file: stat returns ENOTDIR, not ENOENT.
+	notADir := filepath.Join(t.TempDir(), "values.yaml")
+	if err := os.WriteFile(notADir, []byte("replicas: 2\n"), 0o600); err != nil {
+		t.Fatalf("writing values file: %s", err)
+	}
+
+	_, err := renderValuesFile(filepath.Join(notADir, "values.yaml"), &application.TemplateValues{})
+	if err == nil {
+		t.Fatal("expected an error for a path that cannot be stat'd, got none")
+	}
+	if !strings.Contains(err.Error(), "cannot be read") {
+		t.Errorf("expected the stat failure to be reported, got: %s", err)
 	}
 }

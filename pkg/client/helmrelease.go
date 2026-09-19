@@ -177,7 +177,7 @@ func InstallHelmRelease(ctx context.Context, cfg HelmReleaseConfig) {
 	}).
 		WithContext(ctx).
 		WithPolling(5*time.Second).
-		Should(BeTrue(), FailureDiagnostics("HelmRelease '%s/%s' did not become ready", hr.Namespace, hr.Name))
+		Should(BeTrue(), FailureDiagnosticsIn(hr.Namespace, "HelmRelease '%s/%s' did not become ready", hr.Namespace, hr.Name))
 }
 
 // IsHelmReleaseReady checks if a HelmRelease has the Ready condition set to True.

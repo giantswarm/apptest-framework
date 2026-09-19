@@ -125,7 +125,10 @@ Before you can run tests locally you must set the following required environment
 
 - `E2E_KUBECONFIG` must be set to the path to the kubeconfig of the test management cluster (e.g. `./kube/e2e.yaml`) - for the requirements of this kubeconfig please see [cluster-standup-teardown](https://github.com/giantswarm/cluster-standup-teardown) for more details.
 - `E2E_KUBECONFIG_CONTEXT` must be set to the context to use for the management cluster in the kubeconfig (e.g. `capa`)
-- `E2E_APP_VERSION` must be set to version of the app to test against (e.g. `3.5.1`). Note, this version must have already been published to the catalog.
+
+Optionally, the version to test can be set:
+
+- `E2E_APP_VERSION` - the version of the app to test against (e.g. `3.5.1`). Note, this version must have already been published to the catalog. When it is not set, or set to `latest`, the latest published release is tested instead.
 
 Optionally, the following can be set to re-use an existing workload cluster:
 

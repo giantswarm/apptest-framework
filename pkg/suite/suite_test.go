@@ -3,6 +3,9 @@ package suite
 import (
 	"slices"
 	"testing"
+
+	"github.com/giantswarm/apiextensions-application/api/v1alpha1"
+	"github.com/giantswarm/clustertest/v5/pkg/application"
 )
 
 func TestInstallMode(t *testing.T) {
@@ -170,5 +173,40 @@ func TestValidate(t *testing.T) {
 				t.Errorf("validate() = %v, expected no error", err)
 			}
 		})
+	}
+}
+
+// TestCloneApplication covers the copy the upgrade pre-install runs off: the builder methods
+// mutate in place, so anything reconfigured on the copy has to leave the app under test alone.
+func TestCloneApplication(t *testing.T) {
+	app := application.New("test-cluster-test-app", "test-app").
+		WithVersion("1.2.3").
+		WithCatalog("default").
+		WithAppLabels(map[string]string{"app": "test-app"}).
+		WithExtraConfigs([]v1alpha1.AppExtraConfig{{Kind: "configMap", Name: "test-app-bundle-values"}})
+
+	clone := cloneApplication(app).WithVersion("latest").WithCatalog("other")
+	clone.AppLabels["app"] = "other-app"
+	clone.ExtraConfigs[0].Name = "other-values"
+
+	if app.Version != "1.2.3" {
+		t.Errorf("version = %q, expected the original to keep '1.2.3'", app.Version)
+	}
+	if app.Catalog != "default" {
+		t.Errorf("catalog = %q, expected the original to keep 'default'", app.Catalog)
+	}
+	if app.AppLabels["app"] != "test-app" {
+		t.Errorf("appLabels = %v, expected the original's labels to be untouched", app.AppLabels)
+	}
+	if app.ExtraConfigs[0].Name != "test-app-bundle-values" {
+		t.Errorf("extraConfigs = %v, expected the original's extra configs to be untouched", app.ExtraConfigs)
+	}
+}
+
+// TestCloneApplicationNil covers the nil case, so a clone of an app that was never set does not
+// panic before the suite can report what is actually missing.
+func TestCloneApplicationNil(t *testing.T) {
+	if clone := cloneApplication(nil); clone != nil {
+		t.Errorf("clone = %v, expected nil", clone)
 	}
 }
