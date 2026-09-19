@@ -664,7 +664,7 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 
 			case installModeHelmRelease:
 				installName := s.getHelmReleaseName()
-				cfg := s.buildHelmReleaseConfig(installName, "")
+				cfg := s.helmReleaseRef(installName)
 				logger.Log("Uninstalling HelmRelease %s/%s", cfg.Namespace, installName)
 				err := client.DeleteHelmRelease(state.GetContext(), installName, cfg.Namespace)
 				Expect(err).NotTo(HaveOccurred())
@@ -699,7 +699,7 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 
 			case installModeHelmRelease:
 				installName := s.getHelmReleaseName()
-				cfg := s.buildHelmReleaseConfig(installName, "")
+				cfg := s.helmReleaseRef(installName)
 				logger.Log("Checking that HelmRelease %s isn't already installed", installName)
 
 				hr := &helmv2.HelmRelease{
@@ -1388,6 +1388,34 @@ func renderValuesFile(path string, tv *application.TemplateValues) (rendered str
 	return app.Values, nil
 }
 
+// helmReleaseNamespace returns the namespace the suite's HelmRelease lives in: the cluster's
+// org namespace unless the suite named one of its own.
+func (s *suite) helmReleaseNamespace() string {
+	if s.installNamespace == "default" {
+		return state.GetCluster().Organization.GetNamespace()
+	}
+	return s.installNamespace
+}
+
+// helmReleaseRef returns just enough of the config to address an installed HelmRelease and the
+// source it pulls from.
+//
+// It is what a lookup or a delete needs, and deliberately not buildHelmReleaseConfig: that one
+// also renders the values file and asserts on the cluster values placement, so using it here
+// would let a values problem abort the teardown and leave the source CR behind, pinning the
+// next run to this run's chart version.
+func (s *suite) helmReleaseRef(installName string) client.HelmReleaseConfig {
+	return client.HelmReleaseConfig{
+		Name:            installName,
+		Namespace:       s.helmReleaseNamespace(),
+		ChartName:       s.getHelmChartName(),
+		SourceKind:      s.helmSourceKind,
+		SourceName:      s.helmSourceName,
+		SourceNamespace: s.helmSourceNamespace,
+		SourceURL:       s.helmSourceURL,
+	}
+}
+
 // buildHelmReleaseConfig constructs a HelmReleaseConfig from suite settings,
 // applying the defaults a Giant Swarm cluster expects.
 //
@@ -1399,15 +1427,13 @@ func renderValuesFile(path string, tv *application.TemplateValues) (rendered str
 // in-cluster with an impersonated service account, which stays opt-in.
 func (s *suite) buildHelmReleaseConfig(installName, chartVersion string) client.HelmReleaseConfig {
 	cluster := state.GetCluster()
-	namespace := s.installNamespace
+	namespace := s.helmReleaseNamespace()
 	sourceNamespace := s.helmSourceNamespace
 	kubeConfigSecret := s.helmKubeConfigSecretName
 	serviceAccountName := s.helmServiceAccountName
 	storageNamespace := s.helmStorageNamespace
 
-	// Use cluster org namespace if default
-	if namespace == "default" {
-		namespace = cluster.Organization.GetNamespace()
+	if namespace != s.installNamespace {
 		logger.Log("Auto-setting HelmRelease namespace to cluster org namespace: %s", namespace)
 	}
 
