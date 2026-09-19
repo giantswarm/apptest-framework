@@ -1357,9 +1357,11 @@ func renderValuesFile(path string, tv *application.TemplateValues) (rendered str
 		if os.IsNotExist(statErr) {
 			return "", nil
 		}
-		// Anything else (an unreadable file, a broken symlink, a path resolved against an
-		// unexpected working directory) would otherwise install the chart's own defaults and
-		// pass, testing a configuration nobody asked for.
+		// Only absence means no values. Anything else the path itself is wrong about (a
+		// component that is not a directory, a symlink loop, a parent directory that cannot be
+		// traversed) would otherwise install the chart's own defaults and pass, testing a
+		// configuration nobody asked for. A file that stats but cannot be read fails further
+		// down, where clustertest reads it.
 		return "", fmt.Errorf("values file '%s' cannot be read: %w", path, statErr)
 	}
 
