@@ -36,10 +36,14 @@ func FailureDiagnostics(format string, args ...any) func() string {
 
 // FailureDiagnosticsIn is FailureDiagnostics for a wait that polls a namespace of its own.
 //
-// clustertest's handlers all report on the cluster's org namespace, which is where a suite's
-// resources live by default. A suite that sets its own install namespace puts the HelmRelease
-// somewhere else, and dumping the org namespace for it describes resources that have nothing to
-// do with the failure while saying nothing about the one that timed out.
+// clustertest's HelmRelease handler reports on the cluster's org namespace, which is where a
+// suite's resources live by default. A suite that sets its own install namespace puts the
+// HelmRelease somewhere else, so that namespace is dumped in place of the org one: the org
+// namespace would describe resources that have nothing to do with the failure while saying
+// nothing about the release that timed out.
+//
+// The App CR and pod handlers still run either way. An App CR only ever lives in the org
+// namespace, and the pods are the workload itself, so neither follows the HelmRelease.
 func FailureDiagnosticsIn(namespace string, format string, args ...any) func() string {
 	return func() string {
 		framework := state.GetFramework()
@@ -48,9 +52,10 @@ func FailureDiagnosticsIn(namespace string, format string, args ...any) func() s
 		if framework != nil && cluster != nil {
 			if namespace != "" && namespace != cluster.Organization.GetNamespace() {
 				run(helmReleasesNotReadyIn(namespace))
+			} else {
+				run(failurehandler.HelmReleasesNotReady(framework, cluster))
 			}
 
-			run(failurehandler.HelmReleasesNotReady(framework, cluster))
 			run(failurehandler.AppIssues(framework, cluster))
 			run(failurehandler.PodsNotReady(framework, cluster))
 		}
