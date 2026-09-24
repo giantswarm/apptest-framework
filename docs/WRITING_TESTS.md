@@ -252,7 +252,7 @@ Use `WithHelmSourceURL` only if the chart lives outside `gsoci.azurecr.io/charts
 | `WithHelmReleaseName(string)` | Helm release name (`spec.releaseName`). Defaults to the HelmRelease resource name. |
 | `WithHelmTimeout(time.Duration)` | Timeout for Helm operations. Defaults to 10 minutes. |
 | `WithHelmRetries(int)` | Number of retries for install/upgrade remediation. Defaults to 10. |
-| `WithHelmServiceAccountName(string)` | Service account to impersonate when reconciling, which installs the chart into the cluster the HelmRelease lives in instead of through the cluster's kubeconfig. Only needed for resources the MC itself must own, such as app bundles. Auto-created if missing, so it must already hold the permissions to install the chart. |
+| `WithHelmServiceAccountName(string)` | Service account to impersonate when reconciling, which installs the chart into the cluster the HelmRelease lives in instead of through the cluster's kubeconfig. Only needed for resources the MC itself must own, such as app bundles. It must already exist and hold the permissions to install the chart: a bundle suite fails if it is missing, and a standalone suite creates it with no permissions at all, which fails later with an RBAC error. |
 | `WithHelmKubeConfigSecretName(string)` | Kubeconfig secret used to reach the cluster. Defaults to the cluster's own `{clusterName}-kubeconfig`, unless a service account was set instead. |
 | `WithClusterValues(bool)` | Merges the cluster's `{clusterName}-cluster-values` ConfigMap below your own values. Off by default — see [Values](#values). |
 
