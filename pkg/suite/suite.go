@@ -462,6 +462,11 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 		if !s.isMCTest {
 			installName = fmt.Sprintf("%s-%s", cluster.Name, installName)
 		}
+		// clustertest panics on a values file it cannot render. Render it through our own
+		// wrapper first so the suite fails with the file named instead.
+		_, err = renderValuesFile(s.valuesFile, appTemplateValues(cluster))
+		Expect(err).NotTo(HaveOccurred())
+
 		app := application.New(installName, s.appName).
 			WithRepoName(s.repoName).
 			WithCatalog(s.appCatalog).
