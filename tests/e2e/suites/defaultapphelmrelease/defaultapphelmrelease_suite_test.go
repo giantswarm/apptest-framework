@@ -11,8 +11,10 @@ import (
 	"github.com/giantswarm/apptest-framework/v5/pkg/suite"
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
+	applicationv1alpha1 "github.com/giantswarm/apiextensions-application/api/v1alpha1"
 	"github.com/giantswarm/clustertest/v5/pkg/logger"
 	appsv1 "k8s.io/api/apps/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -70,28 +72,41 @@ func TestDefaultAppHelmRelease(t *testing.T) {
 					ShouldNot(HaveOccurred())
 			})
 
-			It("left the cluster chart's HelmRelease alone", func() {
+			It("left the resource the cluster chart owns alone", func() {
 				cluster := state.GetCluster()
 				name := types.NamespacedName{
 					Name:      cluster.Name + "-" + state.GetApplication().AppName,
 					Namespace: cluster.GetNamespace(),
 				}
 
+				// Which kind the app is rendered as belongs to the cluster chart: current
+				// charts install their default apps as HelmReleases, Releases still pinned to
+				// an older one as App CRs. The framework follows whichever it finds, so the
+				// assertion has to as well.
+				var labels map[string]string
+
 				hr := &helmv2.HelmRelease{}
 				err := state.GetFramework().MC().Get(state.GetContext(), name, hr)
-				Expect(err).NotTo(HaveOccurred())
+				switch {
+				case err == nil:
+					logger.Log("The cluster chart rendered '%s' as a HelmRelease", name.Name)
+					labels = hr.Labels
+				case apierrors.IsNotFound(err):
+					appCR := &applicationv1alpha1.App{}
+					err := state.GetFramework().MC().Get(state.GetContext(), name, appCR)
+					Expect(err).NotTo(HaveOccurred(), "the cluster chart rendered neither a HelmRelease nor an App CR named '"+name.Name+"'")
+
+					logger.Log("The cluster chart rendered '%s' as an App CR", name.Name)
+					labels = appCR.Labels
+				default:
+					Expect(err).NotTo(HaveOccurred())
+				}
 
 				// The cluster chart labels everything it renders. The framework creates its
-				// HelmReleases with no labels at all, and installs over an existing one with
+				// resources with no labels of its own, and installs over an existing one with
 				// `CreateOrUpdate`, so a hijacked resource loses these.
-				Expect(hr.Labels).To(HaveKeyWithValue("app.kubernetes.io/managed-by", "Helm"), "the cluster chart's HelmRelease was overwritten by the framework")
-				Expect(hr.Labels).To(HaveKeyWithValue("giantswarm.io/cluster", cluster.Name), "the cluster chart's HelmRelease was overwritten by the framework")
-
-				// A default app is never given up on: the cluster chart installs it with
-				// unlimited remediation retries, where the framework defaults to 10.
-				Expect(hr.Spec.Install).NotTo(BeNil())
-				Expect(hr.Spec.Install.Remediation).NotTo(BeNil())
-				Expect(hr.Spec.Install.Remediation.Retries).To(Equal(-1), "the cluster chart's HelmRelease was overwritten by the framework")
+				Expect(labels).To(HaveKeyWithValue("app.kubernetes.io/managed-by", "Helm"), "the resource the cluster chart owns was overwritten by the framework")
+				Expect(labels).To(HaveKeyWithValue("giantswarm.io/cluster", cluster.Name), "the resource the cluster chart owns was overwritten by the framework")
 			})
 
 		}).

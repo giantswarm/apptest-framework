@@ -157,3 +157,29 @@ func TestBuildHelmReleaseInlineValues(t *testing.T) {
 		t.Errorf("valuesFrom = %v, expected none", hr.Spec.ValuesFrom)
 	}
 }
+
+// TestBuildHelmReleaseInlineValuesWithValuesFrom covers a bundle's config: its own values are
+// inline, and anything merged for it (the cluster values) still has to be referenced. Flux
+// merges valuesFrom first, so the bundle's values keep winning.
+func TestBuildHelmReleaseInlineValuesWithValuesFrom(t *testing.T) {
+	gomega.RegisterTestingT(t)
+
+	hr := buildHelmRelease(HelmReleaseConfig{
+		Name:         "test-bundle",
+		Namespace:    "org-giantswarm",
+		ChartName:    "test-bundle",
+		ChartVersion: "1.2.3",
+		Values:       "replicas: 2\n",
+		InlineValues: true,
+		ValuesFrom: []ValuesSource{
+			{Kind: "ConfigMap", Name: "test-cluster-values", ValuesKey: "values", Optional: true},
+		},
+	})
+
+	if hr.Spec.Values == nil || string(hr.Spec.Values.Raw) != `{"replicas":2}` {
+		t.Errorf("spec.values = %v, expected the values inline", hr.Spec.Values)
+	}
+	if len(hr.Spec.ValuesFrom) != 1 || hr.Spec.ValuesFrom[0].Name != "test-cluster-values" {
+		t.Errorf("valuesFrom = %v, expected the cluster values ConfigMap", hr.Spec.ValuesFrom)
+	}
+}

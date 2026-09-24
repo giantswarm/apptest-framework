@@ -165,6 +165,9 @@ func (s *suite) bundleHelmReleaseConfig(chartValues string) client.HelmReleaseCo
 		InCluster:          true,
 		InlineValues:       true,
 		Values:             chartValues,
+		// Flux merges `valuesFrom` before `spec.values`, so the bundle's own values still win
+		// over anything merged for it.
+		ValuesFrom: s.helmValuesFrom(namespace),
 	}
 }
 
