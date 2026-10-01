@@ -8,8 +8,8 @@ require (
 	github.com/fluxcd/helm-controller/api v1.6.5
 	github.com/fluxcd/pkg/apis/meta v1.32.0
 	github.com/giantswarm/apiextensions-application v0.6.2
-	github.com/giantswarm/cluster-standup-teardown/v6 v6.0.9
-	github.com/giantswarm/clustertest/v5 v5.6.1
+	github.com/giantswarm/cluster-standup-teardown/v6 v6.0.10
+	github.com/giantswarm/clustertest/v5 v5.6.2
 	github.com/onsi/ginkgo/v2 v2.33.0
 	github.com/onsi/gomega v1.44.0
 	golang.org/x/text v0.42.0

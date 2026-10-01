@@ -1,5 +1,5 @@
-al.essio.dev/pkg/shellescape v1.5.1 h1:86HrALUujYS/h+GtqoB26SBEdkWfmMI6FubjXlsXyho=
-al.essio.dev/pkg/shellescape v1.5.1/go.mod h1:6sIqp7X2P6mThCQ7twERpZTuigpr6KbZWtls1U8I890=
+al.essio.dev/pkg/shellescape v1.6.1 h1:ki/kUs/D3dDbZpyKbNRhwY/ajgAEIJFagVKDWKnofQ8=
+al.essio.dev/pkg/shellescape v1.6.1/go.mod h1:6sIqp7X2P6mThCQ7twERpZTuigpr6KbZWtls1U8I890=
 dario.cat/mergo v1.0.2 h1:85+piFYR1tMbRrLcDwR18y4UKJ3aH1Tbzi24VRW1TK8=
 dario.cat/mergo v1.0.2/go.mod h1:E/hbnu0NxMFBjpMIE34DRGLWqDy0g5FuKDhCb31ngxA=
 filippo.io/edwards25519 v1.1.0 h1:FNf4tywRC1HmFuKW5xopWpigGjJKiJSV0Cqo0cJWDaA=
@@ -149,10 +149,10 @@ github.com/fxamacker/cbor/v2 v2.9.4 h1:xwjVlxEMR3S605oUlgBjKLTTeGFciYPGYCtF/35LK
 github.com/fxamacker/cbor/v2 v2.9.4/go.mod h1:vM4b+DJCtHn+zz7h3FFp/hDAI9WNWCsZj23V5ytsSxQ=
 github.com/giantswarm/apiextensions-application v0.6.2 h1:XL86OrpprWl5Wp38EUvUXt3ztTo25+V63oDVlFwDpNg=
 github.com/giantswarm/apiextensions-application v0.6.2/go.mod h1:8ylqSmDSzFblCppRQTFo8v9s/F6MX6RTusVVoDDfWso=
-github.com/giantswarm/cluster-standup-teardown/v6 v6.0.9 h1:VbGlq9an3j1ZXZOexwC3wgxWG/xS1JUn6GJYrV8Rmd4=
-github.com/giantswarm/cluster-standup-teardown/v6 v6.0.9/go.mod h1:2eYWw6kqyf5ZhwFGjcGci6zqpot+KG36FnUslwUKNRU=
-github.com/giantswarm/clustertest/v5 v5.6.1 h1:n6HdeZ3HYuCOid6RptMaf2TvTZTh77r2wBtoiB1vZ10=
-github.com/giantswarm/clustertest/v5 v5.6.1/go.mod h1:0HOEKeDczNFDqptMtJlGHJXQOTUXj0v0z8mPgcQCgoE=
+github.com/giantswarm/cluster-standup-teardown/v6 v6.0.10 h1:sc8p2RVwO6mdkFVTrvbqXmM2UmYlbNXbAcIeHpjDJY8=
+github.com/giantswarm/cluster-standup-teardown/v6 v6.0.10/go.mod h1:fuy/6pJnM8JUfnN/PJMN66rlQhyX3+MeCt/FdTly2hs=
+github.com/giantswarm/clustertest/v5 v5.6.2 h1:Nif5gBmKoVJqzvA/xVNLhPV5wOthVHeopsPt7cYGlOA=
+github.com/giantswarm/clustertest/v5 v5.6.2/go.mod h1:d31rZj5UX68HZHR4fAzdtBP3ZozZPLGdZ8rmca5ktxc=
 github.com/giantswarm/gitsemver/v3 v3.0.1 h1:LFSmiim+ArIzTK8O/XIPbs37/WHRNEk+uIzwvNjYEto=
 github.com/giantswarm/gitsemver/v3 v3.0.1/go.mod h1:0XlTQzT118MezezrJgVxj86UXV+lT7gc6njwIpxlC1M=
 github.com/giantswarm/k8smetadata v0.26.0 h1:2TLymlfjYLyioRRimbm0CxRzEr5lMivsuEiE32+JYxQ=
