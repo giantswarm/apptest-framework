@@ -8,7 +8,7 @@ require (
 	github.com/fluxcd/helm-controller/api v1.6.5
 	github.com/giantswarm/apiextensions-application v0.6.2
 	github.com/giantswarm/apptest-framework/v5 v5.3.0
-	github.com/giantswarm/clustertest/v5 v5.6.1
+	github.com/giantswarm/clustertest/v5 v5.6.2
 	github.com/onsi/ginkgo/v2 v2.33.0
 	github.com/onsi/gomega v1.44.0
 	k8s.io/api v0.37.1
@@ -51,7 +51,7 @@ require (
 	github.com/fluxcd/source-controller/api v1.9.6 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.4 // indirect
-	github.com/giantswarm/cluster-standup-teardown/v6 v6.0.9 // indirect
+	github.com/giantswarm/cluster-standup-teardown/v6 v6.0.10 // indirect
 	github.com/giantswarm/gitsemver/v3 v3.0.1 // indirect
 	github.com/giantswarm/k8smetadata v0.26.0 // indirect
 	github.com/giantswarm/kubectl-gs/v2 v2.57.0 // indirect
