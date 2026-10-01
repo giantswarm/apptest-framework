@@ -344,8 +344,8 @@ func (s *suite) WithHelmRetries(retries int) *suite {
 // when reconciling the HelmRelease, which installs the chart into the cluster the
 // HelmRelease lives in rather than through the cluster's kubeconfig secret. Only needed
 // for resources the management cluster itself must own, such as app bundles.
-// The service account is auto-created if it doesn't exist, so it must be one that already
-// holds the permissions to install the chart.
+// The service account must already exist and hold the permissions to install the chart.
+// The target namespace must exist too, as Helm is not allowed to create it.
 func (s *suite) WithHelmServiceAccountName(name string) *suite {
 	s.helmServiceAccountName = name
 	return s
@@ -668,13 +668,9 @@ func (s *suite) Run(t *testing.T, suiteName string) {
 				s.uninstallBundleHelmRelease(ctx)
 
 			case installModeHelmRelease:
-				installName := s.getHelmReleaseName()
-				cfg := s.helmReleaseRef(installName)
-				logger.Log("Uninstalling HelmRelease %s/%s", cfg.Namespace, installName)
-				err := client.DeleteHelmRelease(state.GetContext(), installName, cfg.Namespace)
-				Expect(err).NotTo(HaveOccurred())
-				err = client.DeleteHelmSource(state.GetContext(), cfg)
-				Expect(err).NotTo(HaveOccurred())
+				ctx, cancel := context.WithTimeout(state.GetContext(), 15*time.Minute)
+				defer cancel()
+				s.uninstallHelmRelease(ctx)
 
 			case installModeApp:
 				app := getInstallApp()
@@ -1446,7 +1442,8 @@ func (s *suite) buildHelmReleaseConfig(installName, chartVersion string) client.
 
 	// Auto-set the cluster's kubeconfig secret unless the suite asked for an in-cluster
 	// install by naming a service account to impersonate.
-	if kubeConfigSecret == "" && serviceAccountName == "" {
+	inCluster := s.isInClusterHelmRelease()
+	if kubeConfigSecret == "" && !inCluster {
 		kubeConfigSecret = fmt.Sprintf("%s-kubeconfig", cleanClusterName(cluster.Name))
 		logger.Log("Auto-setting kubeconfig secret: %s", kubeConfigSecret)
 	}
@@ -1483,9 +1480,48 @@ func (s *suite) buildHelmReleaseConfig(installName, chartVersion string) client.
 		Retries:              s.helmRetries,
 		ServiceAccountName:   serviceAccountName,
 		KubeConfigSecretName: kubeConfigSecret,
+		InCluster:            inCluster,
 		Values:               s.loadValues(),
 		ValuesFrom:           s.helmValuesFrom(namespace),
 	}
+}
+
+// isInClusterHelmRelease reports whether the HelmRelease installs the chart into the MC it
+// lives on, impersonating the service account set with WithHelmServiceAccountName, rather than
+// into the cluster through a kubeconfig secret. A kubeconfig secret wins when both are set.
+func (s *suite) isInClusterHelmRelease() bool {
+	return s.helmServiceAccountName != "" && s.helmKubeConfigSecretName == ""
+}
+
+// uninstallHelmRelease removes the HelmRelease the suite installed, and its source.
+//
+// A HelmRelease installed in-cluster can be an app bundle, whose children reach the workload
+// cluster through its kubeconfig secret. Their uninstall has to finish before the cluster is
+// torn down, so the HelmRelease and everything it installed are waited for. The wait for the
+// children is best effort: the suite has passed or failed by now, so giving up is only logged.
+func (s *suite) uninstallHelmRelease(ctx context.Context) {
+	GinkgoHelper()
+
+	installName := s.getHelmReleaseName()
+	cfg := s.helmReleaseRef(installName)
+	logger.Log("Uninstalling HelmRelease %s/%s", cfg.Namespace, installName)
+	err := client.DeleteHelmRelease(ctx, installName, cfg.Namespace)
+	Expect(err).NotTo(HaveOccurred())
+
+	if s.isInClusterHelmRelease() {
+		deleteCtx, cancel := context.WithTimeout(ctx, bundleUninstallTimeout)
+		defer cancel()
+		Expect(client.WaitForHelmReleaseDeleted(deleteCtx, installName, cfg.Namespace)).To(Succeed())
+
+		childrenCtx, cancelChildren := context.WithTimeout(ctx, bundleChildCleanupTimeout)
+		defer cancelChildren()
+		if err := client.WaitForHelmReleaseChildrenDeleted(childrenCtx, installName, cfg.Namespace); err != nil {
+			logger.Log("Gave up waiting for the resources installed by HelmRelease %s/%s to be removed: %v", cfg.Namespace, installName, err)
+		}
+	}
+
+	err = client.DeleteHelmSource(ctx, cfg)
+	Expect(err).NotTo(HaveOccurred())
 }
 
 // helmValuesFrom returns the values sources merged ahead of the suite's own values, for a

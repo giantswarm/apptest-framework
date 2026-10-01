@@ -210,3 +210,45 @@ func TestCloneApplicationNil(t *testing.T) {
 		t.Errorf("clone = %v, expected nil", clone)
 	}
 }
+
+func TestIsInClusterHelmRelease(t *testing.T) {
+	testCases := []struct {
+		name               string
+		serviceAccountName string
+		kubeConfigSecret   string
+		expected           bool
+	}{
+		{
+			name:     "defaults to the cluster's kubeconfig secret",
+			expected: false,
+		},
+		{
+			name:               "a service account installs in-cluster",
+			serviceAccountName: "automation",
+			expected:           true,
+		},
+		{
+			name:             "a kubeconfig secret installs remotely",
+			kubeConfigSecret: "test-cluster-kubeconfig",
+			expected:         false,
+		},
+		{
+			name:               "a kubeconfig secret wins over a service account",
+			serviceAccountName: "automation",
+			kubeConfigSecret:   "test-cluster-kubeconfig",
+			expected:           false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			s := &suite{
+				helmServiceAccountName:   tc.serviceAccountName,
+				helmKubeConfigSecretName: tc.kubeConfigSecret,
+			}
+			if got := s.isInClusterHelmRelease(); got != tc.expected {
+				t.Errorf("isInClusterHelmRelease() = %t, expected %t", got, tc.expected)
+			}
+		})
+	}
+}
