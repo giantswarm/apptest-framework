@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Go: Update dependencies.
 
+### Fixed
+
+- A standalone HelmRelease installed in-cluster with `WithHelmServiceAccountName()` is now installed as such: Helm no longer tries to create the target namespace, which the impersonated service account is forbidden to do, and the service account is required instead of created without permissions.
+- Uninstalling an in-cluster HelmRelease now waits for it and for the HelmReleases and App CRs it installed to be removed before the workload cluster is torn down, so a bundle testing itself no longer leaves its organization namespace stuck terminating.
+
 ## [5.3.0] - 2026-09-24
 
 ### Added
