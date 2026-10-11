@@ -9,7 +9,7 @@ require (
 	github.com/giantswarm/apiextensions-application v0.6.2
 	github.com/giantswarm/apptest-framework/v5 v5.3.2
 	github.com/giantswarm/clustertest/v5 v5.6.2
-	github.com/onsi/ginkgo/v2 v2.33.0
+	github.com/onsi/ginkgo/v2 v2.33.1
 	github.com/onsi/gomega v1.44.0
 	k8s.io/api v0.37.1
 	k8s.io/apimachinery v0.37.1
@@ -181,7 +181,7 @@ require (
 	oras.land/oras-go/v2 v2.6.2 // indirect
 	sigs.k8s.io/cluster-api v1.14.2 // indirect
 	sigs.k8s.io/cluster-api/api v1.14.2 // indirect
-	sigs.k8s.io/controller-runtime v0.25.1 // indirect
+	sigs.k8s.io/controller-runtime v0.25.2 // indirect
 	sigs.k8s.io/e2e-framework v0.7.0 // indirect
 	sigs.k8s.io/gateway-api v1.6.2 // indirect
 	sigs.k8s.io/json v0.0.0-20260909141634-11ed52e25bc5 // indirect
