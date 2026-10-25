@@ -367,7 +367,7 @@ func buildHelmRelease(cfg HelmReleaseConfig) *helmv2.HelmRelease {
 			Spec: helmv2.HelmChartTemplateSpec{
 				Chart:   cfg.ChartName,
 				Version: cfg.ChartVersion,
-				SourceRef: helmv2.CrossNamespaceObjectReference{
+				SourceRef: &helmv2.CrossNamespaceObjectReference{
 					Kind:      string(source.Kind),
 					Name:      source.Name,
 					Namespace: source.Namespace,
