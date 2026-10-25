@@ -5,7 +5,7 @@ go 1.27.2
 replace github.com/giantswarm/apptest-framework/v5 => ../../
 
 require (
-	github.com/fluxcd/helm-controller/api v1.6.5
+	github.com/fluxcd/helm-controller/api v1.7.0
 	github.com/giantswarm/apiextensions-application v0.6.2
 	github.com/giantswarm/apptest-framework/v5 v5.4.1
 	github.com/giantswarm/clustertest/v5 v5.6.4
@@ -47,8 +47,8 @@ require (
 	github.com/fluxcd/cli-utils v1.4.0 // indirect
 	github.com/fluxcd/pkg/apis/acl v0.12.0 // indirect
 	github.com/fluxcd/pkg/apis/kustomize v1.23.0 // indirect
-	github.com/fluxcd/pkg/apis/meta v1.36.0 // indirect
-	github.com/fluxcd/source-controller/api v1.9.6 // indirect
+	github.com/fluxcd/pkg/apis/meta v1.38.0 // indirect
+	github.com/fluxcd/source-controller/api v1.10.0 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.6 // indirect
 	github.com/giantswarm/cluster-standup-teardown/v6 v6.1.2 // indirect
