@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Update Docker base image to golang 1.27.3 so e2e suites declaring `go 1.27.3` can run (`GOTOOLCHAIN=local` in the image).
+
 ## [5.4.2] - 2026-10-25
 
 ### Changed
