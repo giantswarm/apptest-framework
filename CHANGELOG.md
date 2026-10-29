@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.4.3] - 2026-10-29
+
 ### Changed
 
 - Update Docker base image to golang 1.27.3 so e2e suites declaring `go 1.27.3` can run (`GOTOOLCHAIN=local` in the image).
@@ -534,7 +536,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Config package to provide standard app configuration
 - Client package to abstract some test functionality
 
-[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v5.4.2...HEAD
+[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v5.4.3...HEAD
+[5.4.3]: https://github.com/giantswarm/apptest-framework/compare/v5.4.2...v5.4.3
 [5.4.2]: https://github.com/giantswarm/apptest-framework/compare/v5.4.1...v5.4.2
 [5.4.1]: https://github.com/giantswarm/apptest-framework/compare/v5.4.0...v5.4.1
 [5.4.0]: https://github.com/giantswarm/apptest-framework/compare/v5.3.3...v5.4.0
