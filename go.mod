@@ -5,7 +5,7 @@ go 1.27.3
 require (
 	github.com/aws/aws-sdk-go-v2 v1.48.0
 	github.com/aws/aws-sdk-go-v2/config v1.33.20
-	github.com/fluxcd/helm-controller/api v1.7.1
+	github.com/fluxcd/helm-controller/api v1.7.2
 	github.com/fluxcd/pkg/apis/meta v1.39.0
 	github.com/giantswarm/apiextensions-application v0.6.2
 	github.com/giantswarm/cluster-standup-teardown/v6 v6.1.5
