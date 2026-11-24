@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.4.6] - 2026-11-24
+
 ### Changed
 
 - Skip suites in short mode (`go test -short`), so module checks without a management cluster can compile and run the other tests of an e2e module.
@@ -552,7 +554,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Config package to provide standard app configuration
 - Client package to abstract some test functionality
 
-[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v5.4.5...HEAD
+[Unreleased]: https://github.com/giantswarm/apptest-framework/compare/v5.4.6...HEAD
+[5.4.6]: https://github.com/giantswarm/apptest-framework/compare/v5.4.5...v5.4.6
 [5.4.5]: https://github.com/giantswarm/apptest-framework/compare/v5.4.4...v5.4.5
 [5.4.4]: https://github.com/giantswarm/apptest-framework/compare/v5.4.3...v5.4.4
 [5.4.3]: https://github.com/giantswarm/apptest-framework/compare/v5.4.2...v5.4.3
