@@ -145,6 +145,8 @@ ginkgo --timeout 4h -v -r ./suites/basic/
 
 This will run the `basic` test suite. If you have others you wish to run, replace the directory with the test suite you want to trigger.
 
+`go test -short` skips every suite, since each one needs a live management cluster. CI checks that only build the module rely on this; `ginkgo` without `-short` runs the suites as before.
+
 ### Running local `apptest-framework` changes
 
 If you need to run with a local copy of `apptest-framework` (such as when testing out changes to the framework) you can do so by adding the following to your Apps test go.mod (with the path correctly set to point to your checked out code):

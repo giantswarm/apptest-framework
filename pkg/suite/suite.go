@@ -397,7 +397,13 @@ func (s *suite) Tests(fn func()) *suite {
 // Note: Any test specs found within the calling module that aren't provided to the suite
 // via `BeforeInstall`, `BeforeUpgrade` or `Tests` will still be run but their order is
 // unpredictable and is not recommended.
+//
+// In short mode (`go test -short`) the suite is skipped: it needs a live management cluster.
 func (s *suite) Run(t *testing.T, suiteName string) {
+	if testing.Short() {
+		t.Skip("skipping app test suite in short mode: it needs a live management cluster")
+	}
+
 	RegisterFailHandler(Fail)
 
 	// Ensure we use an actual semver version instead of "latest"

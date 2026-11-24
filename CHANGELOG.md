@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Skip suites in short mode (`go test -short`), so module checks without a management cluster can compile and run the other tests of an e2e module.
+
 ## [5.4.5] - 2026-11-17
 
 ### Changed
