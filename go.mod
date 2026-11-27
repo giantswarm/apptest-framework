@@ -6,7 +6,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.48.1
 	github.com/aws/aws-sdk-go-v2/config v1.33.22
 	github.com/fluxcd/helm-controller/api v1.7.2
-	github.com/fluxcd/pkg/apis/meta v1.39.0
+	github.com/fluxcd/pkg/apis/meta v1.40.0
 	github.com/giantswarm/apiextensions-application v0.6.2
 	github.com/giantswarm/cluster-standup-teardown/v6 v6.1.5
 	github.com/giantswarm/clustertest/v5 v5.6.7
@@ -15,7 +15,7 @@ require (
 	golang.org/x/text v0.44.0
 	k8s.io/api v0.37.2
 	k8s.io/apiextensions-apiserver v0.37.2
-	k8s.io/apimachinery v0.37.2
+	k8s.io/apimachinery v0.37.3
 	sigs.k8s.io/controller-runtime v0.25.3
 	sigs.k8s.io/yaml v1.6.0
 )
@@ -190,7 +190,7 @@ require (
 	k8s.io/klog/v2 v2.140.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20260821135717-be32def86098 // indirect
 	k8s.io/kubectl v0.37.2 // indirect
-	k8s.io/streaming v0.37.2 // indirect
+	k8s.io/streaming v0.37.3 // indirect
 	k8s.io/utils v0.0.0-20261023123148-ca04ba58ecab // indirect
 	oras.land/oras-go/v2 v2.7.0 // indirect
 	sigs.k8s.io/cluster-api v1.14.4 // indirect
